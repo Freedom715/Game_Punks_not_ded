@@ -298,6 +298,15 @@ while running:
             player.change_image("data/Cop_run_right.gif")
             player.rect.x += 5
             player.play()
+    if elem[pygame.K_RIGHT] == 1:
+        player.change_image("data/Cop_shoot_right.gif")
+        player.play()
+    if elem[pygame.K_LEFT] == 1:
+        player.change_image("data/Cop_shoot_left.gif")
+        player.play()
+    if elem[pygame.K_UP] == 1:
+        player.change_image("data/Cop_shoot_up.gif")
+        player.play()
 
     screen.fill((0, 0, 0))
     # all_sprites.draw(screen)
