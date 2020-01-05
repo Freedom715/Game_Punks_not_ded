@@ -107,7 +107,7 @@ def generate_level(level):
 
 
 def load_image(name, colorkey=None):
-    fullname = os.path.join('data', name)
+    fullname = os.path.join('Images', name)
     image = pygame.image.load(fullname).convert()
     if colorkey is not None:
         if colorkey == -1:
@@ -124,10 +124,7 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ["ЗАСТАВКА", "",
-                  "Правила игры",
-                  "Если в правилах несколько строк,",
-                  "приходится выводить их построчно"]
+    intro_text = ["УРОВНИ", "", "Выберите уровни"]
 
     fon = pygame.transform.scale(load_image('fon.png'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
@@ -153,7 +150,7 @@ def start_screen():
 
 
 def load_level(filename):
-    filename = "data/" + filename
+    filename = "Images/" + filename
     # читаем уровень, убирая символы перевода строки
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
@@ -265,7 +262,7 @@ class Player(pygame.sprite.Sprite):
         self.change_image(self.shooting_images, direction)
         Bullet(self.rect.x + player_size_x // 2 - 5,
                self.rect.y + player_size_y // 2 - 5,
-               "data/bottle_", direction, 5, player_group)
+               "Images/bottle_", direction, 5, player_group)
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -348,8 +345,8 @@ player_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 tile_images = {'wall': pygame.transform.scale(load_image('rock.png'), (cell_size, cell_size)),
                'empty': pygame.transform.scale(load_image('floor.png'), (cell_size, cell_size))}
-player_image_file = "data/Cop_run_"
-player_shoot_file = "data/Cop_shoot_"
+player_image_file = "Images/Cop_run_"
+player_shoot_file = "Images/Cop_shoot_"
 tile_width = tile_height = 50
 start_screen()
 running = True
