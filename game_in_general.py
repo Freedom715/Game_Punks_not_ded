@@ -175,10 +175,11 @@ class Player(pygame.sprite.Sprite):
         super().__init__(player_group, all_sprites)
         self.direction = direction
         self.shooting_ticks = shooting_ticks
-        self.images = {0: Image.open(image + "up.gif"),
-                       1: Image.open(image + "right.gif"),
-                       2: Image.open(image + "down.gif"),
-                       3: Image.open(image + "left.gif")}
+        self.images = {0: Image.open(image + "run_up.gif"),
+                       1: Image.open(image + "run_right.gif"),
+                       2: Image.open(image + "run_down.gif"),
+                       3: Image.open(image + "run_left.gif"),
+                       -1: Image.open(image + "stay.gif")}
         self.shooting_images = {0: Image.open(shooting_image + "up.gif"),
                                 1: Image.open(shooting_image + "right.gif"),
                                 2: Image.open(shooting_image + "up.gif"),
@@ -345,7 +346,7 @@ player_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 tile_images = {'wall': pygame.transform.scale(load_image('rock.png'), (cell_size, cell_size)),
                'empty': pygame.transform.scale(load_image('floor.png'), (cell_size, cell_size))}
-player_image_file = "Images/Cop_run_"
+player_image_file = "Images/Cop_"
 player_shoot_file = "Images/Cop_shoot_"
 tile_width, tile_height = 50, 50
 start_screen()
@@ -368,6 +369,7 @@ while running:
         if event.type == pygame.KEYUP:
             player.cur = 0
             player.change_image(player.images, player.direction)
+            player.change_direction(-1)
     elem = pygame.key.get_pressed()
 
     if elem[pygame.K_w] == 1:
@@ -406,7 +408,6 @@ while running:
     for elem in bullet_group:
         elem.render()
     player.render()
-    player.pause()
     pygame.display.flip()
     clock.tick(FPS)
     counter = (counter + 1) % FPS
