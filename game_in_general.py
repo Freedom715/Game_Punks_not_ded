@@ -16,8 +16,8 @@ clock = pygame.time.Clock()
 player = None
 
 
-def get_frames(board):
-    image = board.image_gif
+def get_frames(obj):
+    image = obj.image_gif
     pal = image.getpalette()
     base_palette = []
     for i in range(0, len(pal), 3):
@@ -81,14 +81,88 @@ def get_frames(board):
                 pi.set_colorkey(image.info["transparency"])
             pi2 = pygame.Surface(image.size, SRCALPHA)
             if cons:
-                for i in board.frames:
+                for i in obj.frames:
                     pi2.blit(i[0], (0, 0))
             pi2.blit(pi, (x0, y0), (x0, y0, x1 - x0, y1 - y0))
 
-            board.frames.append([pi2, duration])
+            obj.frames.append([pi2, duration])
             image.seek(image.tell() + 1)
     except EOFError:
         pass
+
+
+def generate_level(level):
+    new_player, x, y = None, None, None
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == '.':
+                Tile('empty', x, y, False)
+            elif level[y][x] == '#':
+                Tile('wall', x, y, True)
+            elif level[y][x] == '@':
+                Tile('empty', x, y, False)
+                new_player = Player(x, y, player_image_file, player_shoot_file, 1, 5, 10)
+    # вернем игрока, а также размер поля в клетках
+    return new_player, x, y
+
+
+def load_image(name, colorkey=None):
+    fullname = os.path.join('data', name)
+    image = pygame.image.load(fullname).convert()
+    if colorkey is not None:
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+    else:
+        image = image.convert_alpha()
+    return image
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def start_screen():
+    intro_text = ["ЗАСТАВКА", "",
+                  "Правила игры",
+                  "Если в правилах несколько строк,",
+                  "приходится выводить их построчно"]
+
+    fon = pygame.transform.scale(load_image('fon.png'), (WIDTH, HEIGHT))
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 30)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                return
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def load_level(filename):
+    filename = "data/" + filename
+    # читаем уровень, убирая символы перевода строки
+    with open(filename, 'r') as mapFile:
+        level_map = [line.strip() for line in mapFile]
+
+    # и подсчитываем максимальную длину
+    max_width = max(map(len, level_map))
+
+    # дополняем каждую строку пустыми клетками ('.')
+    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
 
 class Tile(pygame.sprite.Sprite):
@@ -100,24 +174,19 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, image, direction, speed, shoouting_ticks):
+    def __init__(self, pos_x, pos_y, image, shooting_image, direction, speed, shooting_ticks):
         super().__init__(player_group, all_sprites)
         self.direction = direction
-        self.shoouting_ticks = shoouting_ticks
+        self.shooting_ticks = shooting_ticks
         self.images = {0: Image.open(image + "up.gif"),
                        1: Image.open(image + "right.gif"),
                        2: Image.open(image + "down.gif"),
                        3: Image.open(image + "left.gif")}
-        self.running = True
-        self.reversed = False
-        self.image_gif = self.images[direction]
-        self.frames = []
-        self.startpoint = 0
-        self.ptime = time.time()
-        self.cur = 0
-        get_frames(self)
-        self.breakpoint = len(self.frames) - 1
-        self.render()
+        self.shooting_images = {0: Image.open(shooting_image + "up.gif"),
+                                1: Image.open(shooting_image + "right.gif"),
+                                2: Image.open(shooting_image + "up.gif"),
+                                3: Image.open(shooting_image + "left.gif")}
+        self.change_image(self.images, direction)
         self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
         self.speed = speed
 
@@ -142,17 +211,22 @@ class Player(pygame.sprite.Sprite):
     def play(self):
         self.running = True
 
+    def change_image(self, image_group, direction):
+        self.running = True
+        self.reversed = False
+        self.image_gif = image_group[direction]
+        self.frames = []
+        self.startpoint = 0
+        self.ptime = time.time()
+        self.cur = 0
+        get_frames(self)
+        self.breakpoint = len(self.frames) - 1
+        self.render()
+        self.direction = direction
+
     def change_direction(self, direction):
         if direction != self.direction:
-            self.image_gif = self.images[direction]
-            self.frames = []
-            self.startpoint = 0
-            self.ptime = time.time()
-            self.cur = 0
-            get_frames(self)
-            self.breakpoint = len(self.frames) - 1
-            self.render()
-            self.direction = direction
+            self.change_image(self.images, direction)
 
     def move(self, direction):
         self.change_direction(direction)
@@ -188,7 +262,7 @@ class Player(pygame.sprite.Sprite):
 
     def shoot(self, direction):
         # TODO: анимация стрельбы
-        self.change_direction(direction)
+        self.change_image(self.shooting_images, direction)
         Bullet(self.rect.x + player_size_x // 2 - 5,
                self.rect.y + player_size_y // 2 - 5,
                "data/bottle_", direction, 5, player_group)
@@ -267,80 +341,6 @@ class Bullet(pygame.sprite.Sprite):
             self.direction = direction
 
 
-def generate_level(level):
-    new_player, x, y = None, None, None
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == '.':
-                Tile('empty', x, y, False)
-            elif level[y][x] == '#':
-                Tile('wall', x, y, True)
-            elif level[y][x] == '@':
-                Tile('empty', x, y, False)
-                new_player = Player(x, y, player_image_file, 1, 5, 10)
-    # вернем игрока, а также размер поля в клетках
-    return new_player, x, y
-
-
-def load_image(name, colorkey=None):
-    fullname = os.path.join('data', name)
-    image = pygame.image.load(fullname).convert()
-    if colorkey is not None:
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
-    return image
-
-
-def terminate():
-    pygame.quit()
-    sys.exit()
-
-
-def start_screen():
-    intro_text = ["ЗАСТАВКА", "",
-                  "Правила игры",
-                  "Если в правилах несколько строк,",
-                  "приходится выводить их построчно"]
-
-    fon = pygame.transform.scale(load_image('fon.png'), (WIDTH, HEIGHT))
-    screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 30)
-    text_coord = 50
-    for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('black'))
-        intro_rect = string_rendered.get_rect()
-        text_coord += 10
-        intro_rect.top = text_coord
-        intro_rect.x = 10
-        text_coord += intro_rect.height
-        screen.blit(string_rendered, intro_rect)
-
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                terminate()
-            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                return
-        pygame.display.flip()
-        clock.tick(FPS)
-
-
-def load_level(filename):
-    filename = "data/" + filename
-    # читаем уровень, убирая символы перевода строки
-    with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
-
-    # и подсчитываем максимальную длину
-    max_width = max(map(len, level_map))
-
-    # дополняем каждую строку пустыми клетками ('.')
-    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
-
-
 cell_size, player_size_x, player_size_y = 50, 50, 50
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
@@ -348,7 +348,8 @@ player_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 tile_images = {'wall': pygame.transform.scale(load_image('rock.png'), (cell_size, cell_size)),
                'empty': pygame.transform.scale(load_image('floor.png'), (cell_size, cell_size))}
-player_image_file = "data/Red_run_"
+player_image_file = "data/Cop_run_"
+player_shoot_file = "data/Cop_shoot_"
 tile_width = tile_height = 50
 start_screen()
 running = True
@@ -368,7 +369,8 @@ while running:
         if event.type == pygame.KEYDOWN:
             counter = 0
         if event.type == pygame.KEYUP:
-            pass
+            player.cur = 0
+            player.change_image(player.images, player.direction)
     elem = pygame.key.get_pressed()
 
     if elem[pygame.K_w] == 1:
@@ -379,14 +381,22 @@ while running:
         player.move(3)
     if elem[pygame.K_d] == 1:
         player.move(1)
-    if elem[pygame.K_UP] and counter % player.shoouting_ticks == 0:
-        player.shoot(0)
-    if elem[pygame.K_RIGHT] and counter % player.shoouting_ticks == 0:
-        player.shoot(1)
-    if elem[pygame.K_DOWN] and counter % player.shoouting_ticks == 0:
-        player.shoot(2)
-    if elem[pygame.K_LEFT] and counter % player.shoouting_ticks == 0:
-        player.shoot(3)
+    if elem[pygame.K_UP]:
+        player.play()
+        if counter % player.shooting_ticks == 0:
+            player.shoot(0)
+    elif elem[pygame.K_RIGHT]:
+        player.play()
+        if counter % player.shooting_ticks == 0:
+            player.shoot(1)
+    elif elem[pygame.K_DOWN]:
+        player.play()
+        if counter % player.shooting_ticks == 0:
+            player.shoot(2)
+    elif elem[pygame.K_LEFT]:
+        player.play()
+        if counter % player.shooting_ticks == 0:
+            player.shoot(3)
 
     for elem in bullet_group:
         elem.render()
