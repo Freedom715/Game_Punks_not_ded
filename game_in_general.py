@@ -45,12 +45,16 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, image):
+    def __init__(self, pos_x, pos_y, image, direction):
         super().__init__(player_group, all_sprites)
-        self.filename = image
+        self.direction = direction
+        self.images = {0: Image.open(image + "up.gif"),
+                       1: Image.open(image + "right.gif"),
+                       2: Image.open(image + "down.gif"),
+                       3: Image.open(image + "left.gif")}
         self.running = True
         self.reversed = False
-        self.image_gif = Image.open(image)
+        self.image_gif = self.images[direction]
         self.frames = []
         self.startpoint = 0
         self.ptime = time.time()
@@ -157,12 +161,9 @@ class Player(pygame.sprite.Sprite):
     def play(self):
         self.running = True
 
-    def change_image(self, image):
-        if image != self.filename:
-            self.filename = image
-            self.running = True
-            self.reversed = False
-            self.image_gif = Image.open(image)
+    def change_direction(self, direction):
+        if direction != self.direction:
+            self.image_gif = self.images[direction]
             self.frames = []
             self.startpoint = 0
             self.ptime = time.time()
@@ -170,6 +171,154 @@ class Player(pygame.sprite.Sprite):
             self.get_frames()
             self.breakpoint = len(self.frames) - 1
             self.render()
+            self.direction = direction
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y, image, direction, speed, sprites_to_damage):
+        super().__init__(bullet_group, all_sprites)
+        self.direction = direction
+        self.images = {0: Image.open(image + "up.gif"),
+                       1: Image.open(image + "right.gif"),
+                       2: Image.open(image + "down.gif"),
+                       3: Image.open(image + "left.gif")}
+        self.running = True
+        self.reversed = False
+        self.image_gif = self.images[direction]
+        self.frames = []
+        self.startpoint = 0
+        self.ptime = time.time()
+        self.cur = 0
+        self.get_frames()
+        self.breakpoint = len(self.frames) - 1
+        self.render()
+        self.rect = self.image.get_rect().move(x, y)
+        self.sprites_to_damage = sprites_to_damage
+        self.speed = speed
+
+    def check_collision(self):
+        if pygame.sprite.spritecollideany(self, walls):
+            self.kill()
+        # if pygame.sprite.spritecollideany(self, self.sprites_to_damage):
+        #     self.kill()
+
+    def move(self):
+        self.check_collision()
+        if self.direction == 0:
+            self.rect.y -= self.speed
+        elif self.direction == 1:
+            self.rect.x += self.speed
+        elif self.direction == 2:
+            self.rect.y += self.speed
+        elif self.direction == 3:
+            self.rect.x -= self.speed
+
+    def get_frames(self):
+        image = self.image_gif
+        pal = image.getpalette()
+        base_palette = []
+        for i in range(0, len(pal), 3):
+            rgb = pal[i:i + 3]
+            base_palette.append(rgb)
+
+        all_tiles = []
+        try:
+            while 1:
+                if not image.tile:
+                    image.seek(0)
+                if image.tile:
+                    all_tiles.append(image.tile[0][3][0])
+                image.seek(image.tell() + 1)
+        except EOFError:
+            image.seek(0)
+
+        all_tiles = tuple(set(all_tiles))
+
+        try:
+            while 1:
+                try:
+                    duration = image.info["duration"]
+                except:
+                    duration = 100
+
+                duration *= .001  # convert to milliseconds!
+                cons = False
+
+                x0, y0, x1, y1 = (0, 0) + image.size
+                if image.tile:
+                    tile = image.tile
+                else:
+                    image.seek(0)
+                    tile = image.tile
+                if len(tile) > 0:
+                    x0, y0, x1, y1 = tile[0][1]
+
+                if all_tiles:
+                    if all_tiles in ((6,), (7,)):
+                        cons = True
+                        pal = image.getpalette()
+                        palette = []
+                        for i in range(0, len(pal), 3):
+                            rgb = pal[i:i + 3]
+                            palette.append(rgb)
+                    elif all_tiles in ((7, 8), (8, 7)):
+                        pal = image.getpalette()
+                        palette = []
+                        for i in range(0, len(pal), 3):
+                            rgb = pal[i:i + 3]
+                            palette.append(rgb)
+                    else:
+                        palette = base_palette
+                else:
+                    palette = base_palette
+
+                pi = pygame.image.fromstring(image.tobytes(), image.size, image.mode)
+                pi.set_palette(palette)
+                if "transparency" in image.info:
+                    pi.set_colorkey(image.info["transparency"])
+                pi2 = pygame.Surface(image.size, SRCALPHA)
+                if cons:
+                    for i in self.frames:
+                        pi2.blit(i[0], (0, 0))
+                pi2.blit(pi, (x0, y0), (x0, y0, x1 - x0, y1 - y0))
+
+                self.frames.append([pi2, duration])
+                image.seek(image.tell() + 1)
+        except EOFError:
+            pass
+
+    def render(self):
+        if self.running:
+            if time.time() - self.ptime > self.frames[self.cur][1]:
+                if self.reversed:
+                    self.cur -= 1
+                    if self.cur < self.startpoint:
+                        self.cur = self.breakpoint
+                else:
+                    self.cur += 1
+                    if self.cur > self.breakpoint:
+                        self.cur = self.startpoint
+
+                self.ptime = time.time()
+        self.image = self.frames[self.cur][0]
+
+    def pause(self):
+        self.running = False
+
+    def play(self):
+        self.running = True
+
+    def change_direction(self, direction):
+        if direction != self.direction:
+            self.image_gif = self.images[direction]
+            self.frames = []
+            self.startpoint = 0
+            self.ptime = time.time()
+            self.cur = 0
+            self.get_frames()
+            self.breakpoint = len(self.frames) - 1
+            self.render()
+            self.direction = direction
 
 
 def generate_level(level):
@@ -182,7 +331,7 @@ def generate_level(level):
                 Tile('wall', x, y, True)
             elif level[y][x] == '@':
                 Tile('empty', x, y, False)
-                new_player = Player(x, y, player_image_file)
+                new_player = Player(x, y, player_image_file, 1)
     # вернем игрока, а также размер поля в клетках
     return new_player, x, y
 
@@ -250,68 +399,81 @@ cell_size, player_size_x, player_size_y = 50, 50, 50
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+bullet_group = pygame.sprite.Group()
 tile_images = {'wall': pygame.transform.scale(load_image('rock.png'), (cell_size, cell_size)),
                'empty': pygame.transform.scale(load_image('floor.png'), (cell_size, cell_size))}
-player_image_file = "data/Red_run_right.gif"
+player_image_file = "data/Red_run_"
 tile_width = tile_height = 50
 start_screen()
-direction = 1
 running = True
 player, level_x, level_y = generate_level(load_level('map.txt'))
 time_left = 0
+walls = []
+for elem in tiles_group:
+    if elem.block:
+        walls.append(elem)
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
-            key_pressed = True
-            key = pygame.key.get_pressed()
+            if event.key == K_SPACE:
+                Bullet(player.rect.x + player_size_x // 2 - 5,
+                       player.rect.y + player_size_y // 2 - 5,
+                       "data/bottle_", player.direction, 5, player_group)
         if event.type == pygame.KEYUP:
             key_pressed = False
     elem = pygame.key.get_pressed()
 
     if elem[pygame.K_w] == 1:
-        collision_test_rect = pygame.Rect((player.rect.x, player.rect.y - 5), (player_size_x, player_size_y))
+        collision_test_rect = pygame.Rect((player.rect.x, player.rect.y - 5),
+                                          (player_size_x, player_size_y))
         if collision_test_rect.collidelist(
-                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in tiles_group]) == -1:
-            player.change_image("data/Cop_run_up.gif")
+                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                 tiles_group]) == -1:
+            player.change_direction(0)
             player.rect.y -= 5
             player.play()
     if elem[pygame.K_s] == 1:
-        collision_test_rect = pygame.Rect((player.rect.x, player.rect.y + 5), (player_size_x, player_size_y))
+        collision_test_rect = pygame.Rect((player.rect.x, player.rect.y + 5),
+                                          (player_size_x, player_size_y))
         if collision_test_rect.collidelist(
-                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in tiles_group]) == -1:
-            player.change_image("data/Cop_run_down.gif")
+                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                 tiles_group]) == -1:
+            player.change_direction(2)
             player.rect.y += 5
             player.play()
     if elem[pygame.K_a] == 1:
-        collision_test_rect = pygame.Rect((player.rect.x - 5, player.rect.y), (player_size_x, player_size_y))
+        collision_test_rect = pygame.Rect((player.rect.x - 5, player.rect.y),
+                                          (player_size_x, player_size_y))
         if collision_test_rect.collidelist(
-                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in tiles_group]) == -1:
-            player.change_image("data/Cop_run_left.gif")
+                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                 tiles_group]) == -1:
+            player.change_direction(3)
             player.rect.x -= 5
             player.play()
     if elem[pygame.K_d] == 1:
-        collision_test_rect = pygame.Rect((player.rect.x + 5, player.rect.y), (player_size_x, player_size_y))
+        collision_test_rect = pygame.Rect((player.rect.x + 5, player.rect.y),
+                                          (player_size_x, player_size_y))
         if collision_test_rect.collidelist(
-                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in tiles_group]) == -1:
-            player.change_image("data/Cop_run_right.gif")
+                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                 tiles_group]) == -1:
+            player.change_direction(1)
             player.rect.x += 5
             player.play()
-    if elem[pygame.K_RIGHT] == 1:
-        player.change_image("data/Cop_shoot_right.gif")
-        player.play()
-    if elem[pygame.K_LEFT] == 1:
-        player.change_image("data/Cop_shoot_left.gif")
-        player.play()
-    if elem[pygame.K_UP] == 1:
-        player.change_image("data/Cop_shoot_up.gif")
-        player.play()
+
+    for elem in bullet_group:
+        elem.render()
+        elem.move()
 
     screen.fill((0, 0, 0))
     # all_sprites.draw(screen)
     tiles_group.draw(screen)
     player_group.draw(screen)
+    bullet_group.draw(screen)
+    for elem in bullet_group:
+        elem.render()
     player.render()
     player.pause()
     pygame.display.flip()
