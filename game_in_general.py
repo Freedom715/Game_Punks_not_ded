@@ -16,24 +16,79 @@ clock = pygame.time.Clock()
 player = None
 
 
-# группы спрайтов
+def get_frames(board):
+    image = board.image_gif
+    pal = image.getpalette()
+    base_palette = []
+    for i in range(0, len(pal), 3):
+        rgb = pal[i:i + 3]
+        base_palette.append(rgb)
 
+    all_tiles = []
+    try:
+        while 1:
+            if not image.tile:
+                image.seek(0)
+            if image.tile:
+                all_tiles.append(image.tile[0][3][0])
+            image.seek(image.tell() + 1)
+    except EOFError:
+        image.seek(0)
 
-class Camera:
-    # зададим начальный сдвиг камеры
-    def __init__(self):
-        self.dx = 0
-        self.dy = 0
+    all_tiles = tuple(set(all_tiles))
 
-    # сдвинуть объект obj на смещение камеры
-    def apply(self, obj):
-        obj.rect.x += self.dx
-        obj.rect.y += self.dy
+    try:
+        while 1:
+            try:
+                duration = image.info["duration"]
+            except:
+                duration = 100
 
-    # позиционировать камеру на объекте target
-    def update(self, target):
-        self.dx = -(target.rect.x + target.rect.w // 2 - WIDTH // 2)
-        self.dy = -(target.rect.y + target.rect.h // 2 - HEIGHT // 2)
+            duration *= .001  # convert to milliseconds!
+            cons = False
+
+            x0, y0, x1, y1 = (0, 0) + image.size
+            if image.tile:
+                tile = image.tile
+            else:
+                image.seek(0)
+                tile = image.tile
+            if len(tile) > 0:
+                x0, y0, x1, y1 = tile[0][1]
+
+            if all_tiles:
+                if all_tiles in ((6,), (7,)):
+                    cons = True
+                    pal = image.getpalette()
+                    palette = []
+                    for i in range(0, len(pal), 3):
+                        rgb = pal[i:i + 3]
+                        palette.append(rgb)
+                elif all_tiles in ((7, 8), (8, 7)):
+                    pal = image.getpalette()
+                    palette = []
+                    for i in range(0, len(pal), 3):
+                        rgb = pal[i:i + 3]
+                        palette.append(rgb)
+                else:
+                    palette = base_palette
+            else:
+                palette = base_palette
+
+            pi = pygame.image.fromstring(image.tobytes(), image.size, image.mode)
+            pi.set_palette(palette)
+            if "transparency" in image.info:
+                pi.set_colorkey(image.info["transparency"])
+            pi2 = pygame.Surface(image.size, SRCALPHA)
+            if cons:
+                for i in board.frames:
+                    pi2.blit(i[0], (0, 0))
+            pi2.blit(pi, (x0, y0), (x0, y0, x1 - x0, y1 - y0))
+
+            board.frames.append([pi2, duration])
+            image.seek(image.tell() + 1)
+    except EOFError:
+        pass
 
 
 class Tile(pygame.sprite.Sprite):
@@ -60,86 +115,11 @@ class Player(pygame.sprite.Sprite):
         self.startpoint = 0
         self.ptime = time.time()
         self.cur = 0
-        self.get_frames()
+        get_frames(self)
         self.breakpoint = len(self.frames) - 1
         self.render()
         self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
         self.speed = speed
-
-    def get_frames(self):
-        image = self.image_gif
-
-        pal = image.getpalette()
-        base_palette = []
-        for i in range(0, len(pal), 3):
-            rgb = pal[i:i + 3]
-            base_palette.append(rgb)
-
-        all_tiles = []
-        try:
-            while 1:
-                if not image.tile:
-                    image.seek(0)
-                if image.tile:
-                    all_tiles.append(image.tile[0][3][0])
-                image.seek(image.tell() + 1)
-        except EOFError:
-            image.seek(0)
-
-        all_tiles = tuple(set(all_tiles))
-
-        try:
-            while 1:
-                try:
-                    duration = image.info["duration"]
-                except:
-                    duration = 100
-
-                duration *= .001  # convert to milliseconds!
-                cons = False
-
-                x0, y0, x1, y1 = (0, 0) + image.size
-                if image.tile:
-                    tile = image.tile
-                else:
-                    image.seek(0)
-                    tile = image.tile
-                if len(tile) > 0:
-                    x0, y0, x1, y1 = tile[0][1]
-
-                if all_tiles:
-                    if all_tiles in ((6,), (7,)):
-                        cons = True
-                        pal = image.getpalette()
-                        palette = []
-                        for i in range(0, len(pal), 3):
-                            rgb = pal[i:i + 3]
-                            palette.append(rgb)
-                    elif all_tiles in ((7, 8), (8, 7)):
-                        pal = image.getpalette()
-                        palette = []
-                        for i in range(0, len(pal), 3):
-                            rgb = pal[i:i + 3]
-                            palette.append(rgb)
-                    else:
-                        palette = base_palette
-                else:
-                    palette = base_palette
-
-                pi = pygame.image.fromstring(image.tobytes(), image.size, image.mode)
-                pi.set_palette(palette)
-                if "transparency" in image.info:
-                    pi.set_colorkey(image.info["transparency"])
-                pi2 = pygame.Surface(image.size, SRCALPHA)
-                if cons:
-                    for i in self.frames:
-                        pi2.blit(i[0], (0, 0))
-                pi2.blit(pi, (x0, y0), (x0, y0, x1 - x0, y1 - y0))
-
-                self.frames.append([pi2, duration])
-                image.seek(image.tell() + 1)
-        except EOFError:
-            pass
 
     def render(self):
         if self.running:
@@ -169,7 +149,7 @@ class Player(pygame.sprite.Sprite):
             self.startpoint = 0
             self.ptime = time.time()
             self.cur = 0
-            self.get_frames()
+            get_frames(self)
             self.breakpoint = len(self.frames) - 1
             self.render()
             self.direction = direction
@@ -206,12 +186,13 @@ class Player(pygame.sprite.Sprite):
                      tiles_group]) == -1:
                 self.rect.x += self.speed
 
-    def shoot(self,  direction):
+    def shoot(self, direction):
         # TODO: анимация стрельбы
         self.change_direction(direction)
         Bullet(self.rect.x + player_size_x // 2 - 5,
                self.rect.y + player_size_y // 2 - 5,
                "data/bottle_", direction, 5, player_group)
+
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, image, direction, speed, sprites_to_damage):
@@ -228,7 +209,7 @@ class Bullet(pygame.sprite.Sprite):
         self.startpoint = 0
         self.ptime = time.time()
         self.cur = 0
-        self.get_frames()
+        get_frames(self)
         self.breakpoint = len(self.frames) - 1
         self.render()
         self.rect = self.image.get_rect().move(x, y)
@@ -251,80 +232,6 @@ class Bullet(pygame.sprite.Sprite):
             self.rect.y += self.speed
         elif self.direction == 3:
             self.rect.x -= self.speed
-
-    def get_frames(self):
-        image = self.image_gif
-        pal = image.getpalette()
-        base_palette = []
-        for i in range(0, len(pal), 3):
-            rgb = pal[i:i + 3]
-            base_palette.append(rgb)
-
-        all_tiles = []
-        try:
-            while 1:
-                if not image.tile:
-                    image.seek(0)
-                if image.tile:
-                    all_tiles.append(image.tile[0][3][0])
-                image.seek(image.tell() + 1)
-        except EOFError:
-            image.seek(0)
-
-        all_tiles = tuple(set(all_tiles))
-
-        try:
-            while 1:
-                try:
-                    duration = image.info["duration"]
-                except:
-                    duration = 100
-
-                duration *= .001  # convert to milliseconds!
-                cons = False
-
-                x0, y0, x1, y1 = (0, 0) + image.size
-                if image.tile:
-                    tile = image.tile
-                else:
-                    image.seek(0)
-                    tile = image.tile
-                if len(tile) > 0:
-                    x0, y0, x1, y1 = tile[0][1]
-
-                if all_tiles:
-                    if all_tiles in ((6,), (7,)):
-                        cons = True
-                        pal = image.getpalette()
-                        palette = []
-                        for i in range(0, len(pal), 3):
-                            rgb = pal[i:i + 3]
-                            palette.append(rgb)
-                    elif all_tiles in ((7, 8), (8, 7)):
-                        pal = image.getpalette()
-                        palette = []
-                        for i in range(0, len(pal), 3):
-                            rgb = pal[i:i + 3]
-                            palette.append(rgb)
-                    else:
-                        palette = base_palette
-                else:
-                    palette = base_palette
-
-                pi = pygame.image.fromstring(image.tobytes(), image.size, image.mode)
-                pi.set_palette(palette)
-                if "transparency" in image.info:
-                    pi.set_colorkey(image.info["transparency"])
-                pi2 = pygame.Surface(image.size, SRCALPHA)
-                if cons:
-                    for i in self.frames:
-                        pi2.blit(i[0], (0, 0))
-                pi2.blit(pi, (x0, y0), (x0, y0, x1 - x0, y1 - y0))
-
-                self.frames.append([pi2, duration])
-                image.seek(image.tell() + 1)
-        except EOFError:
-            pass
 
     def render(self):
         if self.running:
@@ -354,7 +261,7 @@ class Bullet(pygame.sprite.Sprite):
             self.startpoint = 0
             self.ptime = time.time()
             self.cur = 0
-            self.get_frames()
+            get_frames(self)
             self.breakpoint = len(self.frames) - 1
             self.render()
             self.direction = direction
@@ -480,7 +387,6 @@ while running:
         player.shoot(2)
     if elem[pygame.K_LEFT] and counter % player.shoouting_ticks == 0:
         player.shoot(3)
-
 
     for elem in bullet_group:
         elem.render()
