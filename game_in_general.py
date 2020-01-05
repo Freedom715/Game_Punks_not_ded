@@ -1,9 +1,10 @@
 import os
-import time
-from pygame.locals import *
-from PIL import Image
-import pygame
 import sys
+import time
+
+import pygame
+from PIL import Image
+from pygame.locals import *
 
 FPS = 50
 
