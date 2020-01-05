@@ -45,9 +45,10 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, image, direction):
+    def __init__(self, pos_x, pos_y, image, direction, speed, shoouting_ticks):
         super().__init__(player_group, all_sprites)
         self.direction = direction
+        self.shoouting_ticks = shoouting_ticks
         self.images = {0: Image.open(image + "up.gif"),
                        1: Image.open(image + "right.gif"),
                        2: Image.open(image + "down.gif"),
@@ -63,7 +64,7 @@ class Player(pygame.sprite.Sprite):
         self.breakpoint = len(self.frames) - 1
         self.render()
         self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
-        print(self.frames)
+        self.speed = speed
 
     def get_frames(self):
         image = self.image_gif
@@ -173,6 +174,44 @@ class Player(pygame.sprite.Sprite):
             self.render()
             self.direction = direction
 
+    def move(self, direction):
+        self.change_direction(direction)
+        self.play()
+        if direction == 0:
+            collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - self.speed),
+                                              (player_size_x, player_size_y))
+            if collision_test_rect.collidelist(
+                    [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                     tiles_group]) == -1:
+                self.rect.y -= self.speed
+        if direction == 2:
+            collision_test_rect = pygame.Rect((self.rect.x, self.rect.y + self.speed),
+                                              (player_size_x, player_size_y))
+            if collision_test_rect.collidelist(
+                    [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                     tiles_group]) == -1:
+                self.rect.y += self.speed
+        if direction == 3:
+            collision_test_rect = pygame.Rect((self.rect.x - self.speed, self.rect.y),
+                                              (player_size_x, player_size_y))
+            if collision_test_rect.collidelist(
+                    [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                     tiles_group]) == -1:
+                self.rect.x -= self.speed
+        if direction == 1:
+            collision_test_rect = pygame.Rect((self.rect.x + self.speed, self.rect.y),
+                                              (player_size_x, player_size_y))
+            if collision_test_rect.collidelist(
+                    [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                     tiles_group]) == -1:
+                self.rect.x += self.speed
+
+    def shoot(self,  direction):
+        # TODO: анимация стрельбы
+        self.change_direction(direction)
+        Bullet(self.rect.x + player_size_x // 2 - 5,
+               self.rect.y + player_size_y // 2 - 5,
+               "data/bottle_", direction, 5, player_group)
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, image, direction, speed, sprites_to_damage):
@@ -331,7 +370,7 @@ def generate_level(level):
                 Tile('wall', x, y, True)
             elif level[y][x] == '@':
                 Tile('empty', x, y, False)
-                new_player = Player(x, y, player_image_file, 1)
+                new_player = Player(x, y, player_image_file, 1, 5, 10)
     # вернем игрока, а также размер поля в клетках
     return new_player, x, y
 
@@ -408,6 +447,8 @@ start_screen()
 running = True
 player, level_x, level_y = generate_level(load_level('map.txt'))
 time_left = 0
+shooting_tick_delay = 10
+counter = 0
 walls = []
 for elem in tiles_group:
     if elem.block:
@@ -418,57 +459,34 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
-            if event.key == K_SPACE:
-                Bullet(player.rect.x + player_size_x // 2 - 5,
-                       player.rect.y + player_size_y // 2 - 5,
-                       "data/bottle_", player.direction, 5, player_group)
+            counter = 0
         if event.type == pygame.KEYUP:
-            key_pressed = False
+            pass
     elem = pygame.key.get_pressed()
 
     if elem[pygame.K_w] == 1:
-        collision_test_rect = pygame.Rect((player.rect.x, player.rect.y - 5),
-                                          (player_size_x, player_size_y))
-        if collision_test_rect.collidelist(
-                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
-                 tiles_group]) == -1:
-            player.change_direction(0)
-            player.rect.y -= 5
-            player.play()
+        player.move(0)
     if elem[pygame.K_s] == 1:
-        collision_test_rect = pygame.Rect((player.rect.x, player.rect.y + 5),
-                                          (player_size_x, player_size_y))
-        if collision_test_rect.collidelist(
-                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
-                 tiles_group]) == -1:
-            player.change_direction(2)
-            player.rect.y += 5
-            player.play()
+        player.move(2)
     if elem[pygame.K_a] == 1:
-        collision_test_rect = pygame.Rect((player.rect.x - 5, player.rect.y),
-                                          (player_size_x, player_size_y))
-        if collision_test_rect.collidelist(
-                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
-                 tiles_group]) == -1:
-            player.change_direction(3)
-            player.rect.x -= 5
-            player.play()
+        player.move(3)
     if elem[pygame.K_d] == 1:
-        collision_test_rect = pygame.Rect((player.rect.x + 5, player.rect.y),
-                                          (player_size_x, player_size_y))
-        if collision_test_rect.collidelist(
-                [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
-                 tiles_group]) == -1:
-            player.change_direction(1)
-            player.rect.x += 5
-            player.play()
+        player.move(1)
+    if elem[pygame.K_UP] and counter % player.shoouting_ticks == 0:
+        player.shoot(0)
+    if elem[pygame.K_RIGHT] and counter % player.shoouting_ticks == 0:
+        player.shoot(1)
+    if elem[pygame.K_DOWN] and counter % player.shoouting_ticks == 0:
+        player.shoot(2)
+    if elem[pygame.K_LEFT] and counter % player.shoouting_ticks == 0:
+        player.shoot(3)
+
 
     for elem in bullet_group:
         elem.render()
         elem.move()
 
     screen.fill((0, 0, 0))
-    # all_sprites.draw(screen)
     tiles_group.draw(screen)
     player_group.draw(screen)
     bullet_group.draw(screen)
@@ -478,4 +496,5 @@ while running:
     player.pause()
     pygame.display.flip()
     clock.tick(FPS)
+    counter = (counter + 1) % FPS
 pygame.quit()
