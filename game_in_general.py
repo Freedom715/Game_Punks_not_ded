@@ -347,7 +347,7 @@ tile_images = {'wall': pygame.transform.scale(load_image('rock.png'), (cell_size
                'empty': pygame.transform.scale(load_image('floor.png'), (cell_size, cell_size))}
 player_image_file = "Images/Cop_run_"
 player_shoot_file = "Images/Cop_shoot_"
-tile_width = tile_height = 50
+tile_width, tile_height = 50, 50
 start_screen()
 running = True
 player, level_x, level_y = generate_level(load_level('map.txt'))
