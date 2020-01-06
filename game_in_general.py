@@ -190,7 +190,7 @@ class Player(pygame.sprite.Sprite):
                        -1: Image.open(image + "stay.gif")}
         self.shooting_images = {0: Image.open(shooting_image + "up.gif"),
                                 1: Image.open(shooting_image + "right.gif"),
-                                2: Image.open(shooting_image + "up.gif"),
+                                2: Image.open(shooting_image + "down.gif"),
                                 3: Image.open(shooting_image + "left.gif")}
         self.change_image(self.images, direction)
         self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
