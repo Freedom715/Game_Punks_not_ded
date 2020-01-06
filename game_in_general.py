@@ -9,7 +9,7 @@ from pygame.locals import *
 FPS = 50
 
 pygame.init()
-size = WIDTH, HEIGHT = 900, 700
+size = WIDTH, HEIGHT = 850, 650
 screen = pygame.display.set_mode(size)
 
 clock = pygame.time.Clock()
@@ -92,21 +92,6 @@ def get_frames(obj):
         pass
 
 
-def generate_level(level):
-    new_player, x, y = None, None, None
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == '.':
-                Tile('empty', x, y, False)
-            elif level[y][x] == '#':
-                Tile('wall', x, y, True)
-            elif level[y][x] == '@':
-                Tile('empty', x, y, False)
-                new_player = Player(x, y, player_image_file, player_shoot_file, 1, 5, 10)
-    # вернем игрока, а также размер поля в клетках
-    return new_player, x, y
-
-
 def load_image(name, colorkey=None):
     fullname = os.path.join('Images', name)
     image = pygame.image.load(fullname).convert()
@@ -151,7 +136,7 @@ def start_screen():
 
 
 def load_level(filename):
-    filename = "Images/" + filename
+    filename = "Levels/" + filename
     # читаем уровень, убирая символы перевода строки
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
@@ -163,12 +148,34 @@ def load_level(filename):
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
 
+def generate_level(level):
+    new_player, x, y = None, None, None
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == '.':
+                Tile('empty', x, y, False, False, False)
+            elif level[y][x] == '#':
+                Tile('wall', x, y, True, True, False)
+            elif level[y][x] == '@':
+                Tile('empty', x, y, False, False, False)
+                new_player = Player(x, y, player_image_file, player_shoot_file, 1, 5, 10)
+            elif level[y][x] == 'D':
+                Tile('door', x, y, True, False, False)
+            elif level[y][x] == '0':
+                Tile('hole', x, y, True, False, True)
+
+    # вернем игрока, а также размер поля в клетках
+    return new_player, x, y
+
+
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, tile_type, pos_x, pos_y, block):
+    def __init__(self, tile_type, pos_x, pos_y, block_player, block_bullets, damage_player):
         super().__init__(tiles_group, all_sprites)
         self.image = tile_images[tile_type]
         self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
-        self.block = block
+        self.block_player = block_player
+        self.block_bullets = block_bullets
+        self.damage_player = damage_player
 
 
 class Player(pygame.sprite.Sprite):
@@ -234,28 +241,28 @@ class Player(pygame.sprite.Sprite):
             collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - self.speed),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
-                    [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                    [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
                 self.rect.y -= self.speed
         if direction == 2:
             collision_test_rect = pygame.Rect((self.rect.x, self.rect.y + self.speed),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
-                    [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                    [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
                 self.rect.y += self.speed
         if direction == 3:
             collision_test_rect = pygame.Rect((self.rect.x - self.speed, self.rect.y),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
-                    [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                    [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
                 self.rect.x -= self.speed
         if direction == 1:
             collision_test_rect = pygame.Rect((self.rect.x + self.speed, self.rect.y),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
-                    [elem.rect if elem.block else pygame.Rect((0, 0), (0, 0)) for elem in
+                    [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
                 self.rect.x += self.speed
 
@@ -288,9 +295,14 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(x, y)
         self.sprites_to_damage = sprites_to_damage
         self.speed = speed
+        self.walls = []
+        for elem in tiles_group:
+            if elem.block_bullets:
+                self.walls.append(elem)
 
     def check_collision(self):
-        if pygame.sprite.spritecollideany(self, walls):
+
+        if pygame.sprite.spritecollideany(self, self.walls):
             self.kill()
         # if pygame.sprite.spritecollideany(self, self.sprites_to_damage):
         #     self.kill()
@@ -346,20 +358,19 @@ tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 tile_images = {'wall': pygame.transform.scale(load_image('rock.png'), (cell_size, cell_size)),
-               'empty': pygame.transform.scale(load_image('floor.png'), (cell_size, cell_size))}
+               'empty': pygame.transform.scale(load_image('floor.png'), (cell_size, cell_size)),
+               'door': pygame.transform.scale(load_image('door.png'), (cell_size, cell_size)),
+               'hole': pygame.transform.scale(load_image('hole.png'), (cell_size, cell_size))}
 player_image_file = "Images/Cop_"
 player_shoot_file = "Images/Cop_shoot_"
 tile_width, tile_height = 50, 50
-start_screen()
 running = True
-player, level_x, level_y = generate_level(load_level('map.txt'))
+player, level_x, level_y = generate_level(load_level('diagonal.txt'))
 time_left = 0
 shooting_tick_delay = 10
 counter = 0
-walls = []
-for elem in tiles_group:
-    if elem.block:
-        walls.append(elem)
+
+start_screen()
 
 while running:
     for event in pygame.event.get():
