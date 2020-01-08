@@ -163,6 +163,9 @@ def generate_level(level):
                 Tile('door', x, y, True, False, False)
             elif level[y][x] == '0':
                 Tile('hole', x, y, True, False, True)
+            elif level[y][x] == "A":
+                Tile('empty', x, y, False, False, False)
+                Artifact(x, y)
 
     # вернем игрока, а также размер поля в клетках
     return new_player, x, y
@@ -193,7 +196,7 @@ class Player(pygame.sprite.Sprite):
                                 2: Image.open(shooting_image + "down.gif"),
                                 3: Image.open(shooting_image + "left.gif")}
         self.change_image(self.images, direction)
-        self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 5)
+        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
         self.speed = speed
 
     def render(self):
@@ -352,10 +355,24 @@ class Bullet(pygame.sprite.Sprite):
             self.direction = direction
 
 
-cell_size, player_size_x, player_size_y = 50, 50, 50
+class Artifact(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(artifact_group)
+        self.pos_x = pos_x
+        self.pos_y = pos_y
+        self.image = pygame.Surface([20, 20])
+        self.image.fill((0, 0, 127))
+        self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 15)
+
+    def check_collision(self):
+        if pygame.sprite.spritecollide(self, player_group, False):
+            self.kill()
+
+
 cell_size, player_size_x, player_size_y = 50, 50, 50
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
+artifact_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 tile_images = {'wall': pygame.transform.scale(load_image('wall.png'), (cell_size, cell_size)),
@@ -366,7 +383,7 @@ player_image_file = "Images/Cop_"
 player_shoot_file = "Images/Cop_shoot_"
 tile_width, tile_height = 50, 50
 running = True
-player, level_x, level_y = generate_level(load_level('diagonal.txt'))
+player, level_x, level_y = generate_level(load_level('circle.txt'))
 time_left = 0
 shooting_tick_delay = 10
 counter = 0
@@ -416,10 +433,13 @@ while running:
 
     screen.fill((0, 0, 0))
     tiles_group.draw(screen)
-    player_group.draw(screen)
+    artifact_group.draw(screen)
     bullet_group.draw(screen)
+    player_group.draw(screen)
     for elem in bullet_group:
         elem.render()
+    for elem in artifact_group:
+        elem.check_collision()
     player.render()
     pygame.display.flip()
     clock.tick(FPS)
