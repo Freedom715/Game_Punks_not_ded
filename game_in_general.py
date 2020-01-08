@@ -158,14 +158,15 @@ def generate_level(level):
                 Tile('wall', x, y, True, True, False)
             elif level[y][x] == '@':
                 Tile('empty', x, y, False, False, False)
-                new_player = Player(x, y, player_image_file, player_shoot_file, 1, 5, 10)
+                new_player = Player(x, y, player_image_file, player_shoot_file, 5)
             elif level[y][x] == 'D':
                 Tile('door', x, y, True, False, False)
             elif level[y][x] == '0':
                 Tile('hole', x, y, True, False, True)
             elif level[y][x] == "A":
                 Tile('empty', x, y, False, False, False)
-                Artifact(x, y)
+                Artifact(x, y)  # TODO создавать игрока до создания артефакт, дабы сразу изменять его параметры
+                # Artifact(x, y, player)
 
     # вернем игрока, а также размер поля в клетках
     return new_player, x, y
@@ -182,10 +183,9 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, image, shooting_image, direction, speed, shooting_ticks):
+    def __init__(self, pos_x, pos_y, image, shooting_image, speed, direction=-1):
         super().__init__(player_group, all_sprites)
         self.direction = direction
-        self.shooting_ticks = shooting_ticks
         self.images = {0: Image.open(image + "run_up.gif"),
                        1: Image.open(image + "run_right.gif"),
                        2: Image.open(image + "run_down.gif"),
@@ -197,7 +197,12 @@ class Player(pygame.sprite.Sprite):
                                 3: Image.open(shooting_image + "left.gif")}
         self.change_image(self.images, direction)
         self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
-        self.speed = speed
+        self.hero_speed = speed
+        self.shooting_ticks = 15
+        self.coeff_tear_damage = 1
+        self.tear_damage = 3.5
+        self.tear_speed = 10
+        # self.range = 24 TODO: this parameter indicates how far the tear is flying
 
     def render(self):
         if self.running:
@@ -241,44 +246,44 @@ class Player(pygame.sprite.Sprite):
         self.change_direction(direction)
         self.play()
         if direction == 0:
-            collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - self.speed),
+            collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - self.hero_speed),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
-                self.rect.y -= self.speed
+                self.rect.y -= self.hero_speed
         if direction == 2:
-            collision_test_rect = pygame.Rect((self.rect.x, self.rect.y + self.speed),
+            collision_test_rect = pygame.Rect((self.rect.x, self.rect.y + self.hero_speed),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
-                self.rect.y += self.speed
+                self.rect.y += self.hero_speed
         if direction == 3:
-            collision_test_rect = pygame.Rect((self.rect.x - self.speed, self.rect.y),
+            collision_test_rect = pygame.Rect((self.rect.x - self.hero_speed, self.rect.y),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
-                self.rect.x -= self.speed
+                self.rect.x -= self.hero_speed
         if direction == 1:
-            collision_test_rect = pygame.Rect((self.rect.x + self.speed, self.rect.y),
+            collision_test_rect = pygame.Rect((self.rect.x + self.hero_speed, self.rect.y),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
-                self.rect.x += self.speed
+                self.rect.x += self.hero_speed
 
     def shoot(self, direction):
         # TODO: анимация стрельбы
         self.change_image(self.shooting_images, direction)
         Bullet(self.rect.x + player_size_x // 2 - 5,
                self.rect.y + player_size_y // 2 - 5,
-               "Images/bottle_", direction, 5, player_group)
+               "Images/bottle_", direction, self.tear_speed, self.tear_damage * self.coeff_tear_damage, player_group)
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, image, direction, speed, sprites_to_damage):
+    def __init__(self, x, y, image, direction, speed, damage, sprites_to_damage):
         super().__init__(bullet_group, all_sprites)
         self.direction = direction
         self.images = {0: Image.open(image + "up.gif"),
@@ -296,15 +301,15 @@ class Bullet(pygame.sprite.Sprite):
         self.breakpoint = len(self.frames) - 1
         self.render()
         self.rect = self.image.get_rect().move(x, y)
+        self.damage = damage
         self.sprites_to_damage = sprites_to_damage
-        self.speed = speed
+        self.bullet_speed = speed
         self.walls = []
         for elem in tiles_group:
             if elem.block_bullets:
                 self.walls.append(elem)
 
     def check_collision(self):
-
         if pygame.sprite.spritecollideany(self, self.walls):
             self.kill()
         # if pygame.sprite.spritecollideany(self, self.sprites_to_damage):
@@ -313,13 +318,13 @@ class Bullet(pygame.sprite.Sprite):
     def move(self):
         self.check_collision()
         if self.direction == 0:
-            self.rect.y -= self.speed
+            self.rect.y -= self.bullet_speed
         elif self.direction == 1:
-            self.rect.x += self.speed
+            self.rect.x += self.bullet_speed
         elif self.direction == 2:
-            self.rect.y += self.speed
+            self.rect.y += self.bullet_speed
         elif self.direction == 3:
-            self.rect.x -= self.speed
+            self.rect.x -= self.bullet_speed
 
     def render(self):
         if self.running:
@@ -360,13 +365,18 @@ class Artifact(pygame.sprite.Sprite):
         super().__init__(artifact_group)
         self.pos_x = pos_x
         self.pos_y = pos_y
-        self.image = pygame.Surface([20, 20])
+        self.image = pygame.Surface([40, 40])
         self.image.fill((0, 0, 127))
         self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 15)
 
     def check_collision(self):
         if pygame.sprite.spritecollide(self, player_group, False):
             self.kill()
+
+
+class hp_artifact(Artifact):
+    def action(self):
+        pass  # +1 hp
 
 
 cell_size, player_size_x, player_size_y = 50, 50, 50
