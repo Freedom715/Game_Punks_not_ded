@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+from random import choice
 
 import pygame
 from PIL import Image
@@ -13,8 +14,9 @@ size = WIDTH, HEIGHT = 850, 650
 screen = pygame.display.set_mode(size)
 
 clock = pygame.time.Clock()
+
+
 # основной персонаж
-player = None
 
 
 def get_frames(obj):
@@ -135,40 +137,150 @@ def start_screen():
         clock.tick(FPS)
 
 
-def load_level(filename):
-    filename = "Levels/" + filename
-    # читаем уровень, убирая символы перевода строки
-    with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
+class Room:
+    def __init__(self, filename):
+        self.filename, self.exits = filename, []
+        self.door_up, self.door_right, self.door_down, self.door_left = None, None, None, None
+        self.load_level(self.filename + ".txt")
+        self.player, self.width, self.height = None, None, None
 
-    # и подсчитываем максимальную длину
-    max_width = max(map(len, level_map))
+    def get_level(self):
+        self.player, self.width, self.height = self.generate_level(self.load_level(self.filename + ".txt"))
 
-    # дополняем каждую строку пустыми клетками ('.')
-    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+    def load_level(self, filename):
+        filename = "Levels/" + filename
+        # читаем уровень, убирая символы перевода строки
+        with open(filename, 'r') as mapFile:
+            for line in mapFile:
+                self.exits = list(map(int, line.split()))
+                break
+            level_map = [line.strip() for line in mapFile]
+
+        # и подсчитываем максимальную длину
+        max_width = max(map(len, level_map))
+
+        # дополняем каждую строку пустыми клетками ('.')
+        return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+
+    def generate_level(self, level):
+        new_player, x, y = None, None, None
+        for y in range(len(level)):
+            for x in range(len(level[y])):
+                if level[y][x] == '.':
+                    Tile('empty', x, y, False, False, False)
+                elif level[y][x] == '#':
+                    Tile('wall', x, y, True, True, False)
+                elif level[y][x] == '@':
+                    new_player = Player(self, x, y, player_image_file, player_shoot_file, 1, 5, 10)
+                    Tile('empty', x, y, False, False, False)
+                elif level[y][x] == '^':
+                    self.door_up = Tile('door_up', x, y, False, True, False)
+                elif level[y][x] == '>':
+                    self.door_right = Tile('door_right', x, y, False, True, False)
+                elif level[y][x] == 'v':
+                    self.door_down = Tile('door_down', x, y, False, True, False)
+                elif level[y][x] == '<':
+                    self.door_left = Tile('door_left', x, y, False, True, False)
+                elif level[y][x] == '0':
+                    Tile('hole', x, y, True, False, True)
+                elif level[y][x] == "A":
+                    Tile('empty', x, y, False, False, False)
+                    Artifact(x, y)
+        return new_player, x, y
 
 
-def generate_level(level):
-    new_player, x, y = None, None, None
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == '.':
-                Tile('empty', x, y, False, False, False)
-            elif level[y][x] == '#':
-                Tile('wall', x, y, True, True, False)
-            elif level[y][x] == '@':
-                Tile('empty', x, y, False, False, False)
-                new_player = Player(x, y, player_image_file, player_shoot_file, 1, 5, 10)
-            elif level[y][x] == 'D':
-                Tile('door', x, y, True, False, False)
-            elif level[y][x] == '0':
-                Tile('hole', x, y, True, False, True)
-            elif level[y][x] == "A":
-                Tile('empty', x, y, False, False, False)
-                Artifact(x, y)
+class Map:
+    def __init__(self, rooms_count):
+        self.rooms_count = rooms_count
+        self.rooms = []
+        self.map = [[None] * 2 * rooms_count for _ in range(2 * rooms_count)]
+        self.current_x = rooms_count - 1
+        self.current_y = rooms_count - 1
+        self.generate_map()
 
-    # вернем игрока, а также размер поля в клетках
-    return new_player, x, y
+    def get_coords(self, coords, direction):
+        if direction == 0:
+            return coords[0], coords[1] - 1
+        if direction == 1:
+            return coords[0] + 1, coords[1]
+        if direction == 2:
+            return coords[0], coords[1] + 1
+        if direction == 3:
+            return coords[0] - 1, coords[1]
+
+    def generate_map(self):
+        x, y = self.current_x, self.current_y
+        self.map[y][x] = Room("circle")
+        self.rooms.append(Room("circle"))
+        for i in range(self.rooms_count):
+            direction = choice([0, 1, 2, 3])
+            coords = self.get_coords((x, y), direction)
+            while self.map[coords[0]][coords[1]] is not None or direction not in self.rooms[-1].exits:
+                direction = choice([0, 1, 2, 3])
+                coords = self.get_coords((x, y), direction)
+            x, y = self.get_coords((x, y), direction)
+            room = Room(choice(room_types))
+            while ((direction + 2) % 4 not in room.exits or
+                   all([(elem + 2) % 4 not in self.rooms[-1].exits for elem in room.exits])):
+                room = Room(choice(room_types))
+            self.map[y][x] = room
+            self.rooms.append(room)
+        for elem in self.map:
+            print(elem)
+
+    def get_current_room(self):
+        return self.map[self.current_y][self.current_x]
+
+    def check_door(self):
+        if self.map[self.current_y][self.current_x].door_up is not None:
+            if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
+                                                     self.map[self.current_y][self.current_x].door_up):
+                if self.map[self.current_y - 1][self.current_x] is not None:
+                    self.map[self.current_y - 1][self.current_x].get_level()
+                    self.current_y -= 1
+                    return True
+        if self.map[self.current_y][self.current_x].door_right is not None:
+            if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
+                                                     self.map[self.current_y][self.current_x].door_right):
+                if self.map[self.current_y][self.current_x + 1] is not None:
+                    self.map[self.current_y][self.current_x + 1].get_level()
+                    self.current_x += 1
+                    return True
+        if self.map[self.current_y][self.current_x].door_down is not None:
+            if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
+                                                     self.map[self.current_y][self.current_x].door_down):
+                if self.map[self.current_y + 1][self.current_x] is not None:
+                    self.map[self.current_y + 1][self.current_x].get_level()
+                    self.current_y += 1
+                    return True
+        if self.map[self.current_y][self.current_x].door_left is not None:
+            if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
+                                                     self.map[self.current_y][self.current_x].door_left):
+                if self.map[self.current_y][self.current_x - 1] is not None:
+                    self.map[self.current_y][self.current_x - 1].get_level()
+                    self.current_x -= 1
+                    return True
+
+    def update_doors(self):
+        if self.map[self.current_y][self.current_x].door_up is not None:
+            if not self.map[self.current_y - 1][self.current_x]:
+                self.map[self.current_y][self.current_x].door_up.image = tile_images['door_up_closed']
+                self.map[self.current_y][self.current_x].door_up.block_player = True
+
+        if self.map[self.current_y][self.current_x].door_right is not None:
+            if not self.map[self.current_y][self.current_x + 1]:
+                self.map[self.current_y][self.current_x].door_right.image = tile_images['door_right_closed']
+                self.map[self.current_y][self.current_x].door_right.block_player = True
+
+        if self.map[self.current_y][self.current_x].door_down is not None:
+            if not self.map[self.current_y + 1][self.current_x]:
+                self.map[self.current_y][self.current_x].door_down.image = tile_images['door_down_closed']
+                self.map[self.current_y][self.current_x].door_down.block_player = True
+
+        if self.map[self.current_y][self.current_x].door_left is not None:
+            if not self.map[self.current_y][self.current_x - 1]:
+                self.map[self.current_y][self.current_x].door_left.image = tile_images['door_left_closed']
+                self.map[self.current_y][self.current_x].door_left.block_player = True
 
 
 class Tile(pygame.sprite.Sprite):
@@ -182,8 +294,10 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, image, shooting_image, direction, speed, shooting_ticks):
+    def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, speed, shooting_ticks):
         super().__init__(player_group, all_sprites)
+        self.room = room
+        self.map = Map
         self.direction = direction
         self.shooting_ticks = shooting_ticks
         self.images = {0: Image.open(image + "run_up.gif"),
@@ -369,27 +483,42 @@ class Artifact(pygame.sprite.Sprite):
             self.kill()
 
 
-cell_size, player_size_x, player_size_y = 50, 50, 50
-all_sprites = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
-artifact_group = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
-bullet_group = pygame.sprite.Group()
-tile_images = {'wall': pygame.transform.scale(load_image('wall.png'), (cell_size, cell_size)),
-               'empty': pygame.transform.scale(load_image('floor.png'), (cell_size, cell_size)),
-               'door': pygame.transform.scale(load_image('door.png'), (cell_size, cell_size)),
-               'hole': pygame.transform.scale(load_image('hole.png'), (cell_size, cell_size))}
 player_image_file = "Images/Cop_"
 player_shoot_file = "Images/Cop_shoot_"
+
+cell_size, player_size_x, player_size_y = 50, 50, 50
+
+all_sprites, tiles_group, artifact_group = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
+player_group, bullet_group = pygame.sprite.Group(), pygame.sprite.Group()
+
+tile_images = {'wall': pygame.transform.scale(load_image('wall.png'), (cell_size, cell_size)),
+               'empty': pygame.transform.scale(load_image('floor.png'), (cell_size, cell_size)),
+               'door_up': pygame.transform.scale(load_image('door.png'), (cell_size, cell_size)),
+               'door_right': pygame.transform.rotate(load_image('door.png'), 270),
+               'door_down': pygame.transform.rotate(load_image('door.png'), 180),
+               'door_left': pygame.transform.rotate(load_image('door.png'), 90),
+               'door_up_closed': pygame.transform.scale(load_image('door_closed.png'), (cell_size, cell_size)),
+               'door_right_closed': pygame.transform.rotate(load_image('door_closed.png'), 270),
+               'door_down_closed': pygame.transform.rotate(load_image('door_closed.png'), 180),
+               'door_left_closed': pygame.transform.rotate(load_image('door_closed.png'), 90),
+               'hole': pygame.transform.scale(load_image('hole.png'), (cell_size, cell_size))}
 tile_width, tile_height = 50, 50
-running = True
-player, level_x, level_y = generate_level(load_level('map.txt'))
-time_left = 0
+
+room_types = ["circle", "circle_in_square", "death_road", "diagonal", "lines", "mexico", "square_trap", "trapezoid"]
+
+# player, level_x, level_y = generate_level(load_level('map.txt'))
+game_map = Map(10)
+room = game_map.get_current_room()
+room.get_level()
+player = room.player
+game_map.update_doors()
+
 shooting_tick_delay = 10
 counter = 0
 
-start_screen()
+running = True
 
+start_screen()
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -434,16 +563,25 @@ while running:
         elem.move()
 
     screen.fill((0, 0, 0))
+
     tiles_group.draw(screen)
     artifact_group.draw(screen)
     bullet_group.draw(screen)
     player_group.draw(screen)
-    for elem in bullet_group:
-        elem.render()
+
     for elem in artifact_group:
         elem.check_collision()
+
+    if game_map.check_door():
+        all_sprites, tiles_group, artifact_group = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
+        player_group, bullet_group = pygame.sprite.Group(), pygame.sprite.Group()
+        room = game_map.get_current_room()
+        room.get_level()
+        player = room.player
+        game_map.update_doors()
+
     player.render()
     pygame.display.flip()
     clock.tick(FPS)
-    counter = (counter + 1) % FPS
+    counter = (counter + 1) % (shooting_tick_delay * 2)
 pygame.quit()
