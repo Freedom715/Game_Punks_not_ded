@@ -35,10 +35,19 @@ art_parameters = {'meat': (load_image('art_meat.png', -1), (0, 0, 1, 0, 0, 1, Fa
                   'sandwich': (load_image('art_sandwich.png', -1), (0, 0, 0, 0, 0, 1, False)),
                   'breakfast': (load_image('art_breakfast.png', -1), (0, 0, 0, 0, 0, 1, False)),
                   'soup': (load_image('art_soup.png', -1), (0, 0, 0, 0, 0, 1, False)),
-                  'onion': (load_image('art_onion.png', -1), (0, 0, 0, 0.7, 0, False))}
-#                 '': (load_image('')), '': (load_image('')), '': (load_image('')),
-#                 '': (load_image('')), '': (load_image('')), '': (load_image('')),
-#                 '': (load_image('')), '': (load_image('')), '': (load_image('')),
+                  'onion': (load_image('art_onion.png', -1), (0, 0, 0, 0.7, 0, False)),
+                  'screw': (load_image('art_screw.png', -1), (0, 0, 0, 0.3, -0.2, False)),
+                  'amulet': (load_image('art_amulet.png', -1), (0, 0, 1, 0, 0, 0, False)),
+                  'kosuha': (load_image('art_kosuha.png', -1), (-0.2, 0, 0, 0, 0, 0, True)),
+                  'dead_cat': (load_image('art_dead_cat.png', -1), (0, 1.5, 1, 0, 0, 0, True)),
+                  'mineral_water': (
+                      load_image('art_mineral_water.png', -1), (0, 0, 0.5, 0, 0, 0, False)),
+                  'good_morning': (
+                      load_image('art_good_morning.png', -1), (0, 0, 0.5, 0, -0.7, 1, False)),
+                  'eye': (load_image('art_eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
+
+
+#                 '': (load_image('')), '': (load_image(''))}
 #                 '': (load_image('')), '': (load_image('')), '': (load_image('')),
 #                 '': (load_image('')), '': (load_image('')), '': (load_image('')), }
 
@@ -172,7 +181,7 @@ def generate_level(level):
                 Tile('wall', x, y, True, True, False)
             elif level[y][x] == '@':
                 Tile('empty', x, y, False, False, False)
-                new_player = Player(x, y, player_image_file, player_shoot_file, 1)
+                new_player = Player(x, y, player_image_file, player_shoot_file, -1)
             elif level[y][x] == 'D':
                 Tile('door', x, y, True, False, False)
             elif level[y][x] == '0':
@@ -197,8 +206,10 @@ class Tile(pygame.sprite.Sprite):
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, image, shooting_image, direction,
-                 parameters=(6, 1, 3.5, 10, 15, 3)):
+                 parameters=None):
         super().__init__(player_group, all_sprites)
+        if parameters is None:
+            parameters = [6, 1, 3.5, 5, 21, 3]
         self.direction = direction
         # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
         self.player_parameters = parameters
@@ -290,7 +301,7 @@ class Player(pygame.sprite.Sprite):
         self.change_image(self.shooting_images, direction)
         Bullet(self.rect.x + player_size_x // 2 - 5,
                self.rect.y + player_size_y // 2 - 5,
-               "Images/bottle_", direction, player_group)
+               "Images/bottle_", direction, player.player_parameters[3], player_group)
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -377,17 +388,27 @@ class Artifact(pygame.sprite.Sprite):
         self.art_name = choice(list(art_parameters.keys()))
         self.pos_x = pos_x
         self.pos_y = pos_y
-        # self.parameters = art_parameters[self.art_name][1:]
+        self.parameters = art_parameters[self.art_name][1]
         self.image = art_parameters[self.art_name][0]
-        self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 15)
+        self.rect = self.image.get_rect().move(tile_width * pos_x + 10, tile_height * pos_y + 10)
 
     def check_collision(self):
         if pygame.sprite.spritecollide(self, player_group, False):
-            #            for indx in (1, 4, 5):
-            #                player.player_parameters[indx - 1] = int(
-            #                    self.parameters[indx] * player.player_parameters[indx - 1]) + \
-            #                                                     player.player_parameters[indx - 1]
+            print(player.player_parameters)
+            for i in (0, 4, 3):
+                if player.player_parameters[i] + int(
+                        self.parameters[i] * player.player_parameters[i]) > 1:
+                    player.player_parameters[i] += int(
+                        self.parameters[i] * player.player_parameters[i])
+                else:
+                    player.player_parameters[i] = 1
+            player.player_parameters[2] += self.parameters[2] * player.player_parameters[2] * \
+                                           player.player_parameters[1]
+            if self.parameters[1] > player.player_parameters[1]:
+                player.player_parameters[1] = self.parameters[1]
+            player.player_parameters[5] += self.parameters[5]
             self.kill()
+            print(player.player_parameters)
 
 
 cell_size, player_size_x, player_size_y = 50, 50, 50
@@ -433,19 +454,19 @@ while running:
         player.move(1)
     if elem[pygame.K_UP]:
         player.play()
-        if counter % player.shooting_ticks == 0:
+        if counter % player.player_parameters[4] == 0:
             player.shoot(0)
     elif elem[pygame.K_RIGHT]:
         player.play()
-        if counter % player.shooting_ticks == 0:
+        if counter % player.player_parameters[4] == 0:
             player.shoot(1)
     elif elem[pygame.K_DOWN]:
         player.play()
-        if counter % player.shooting_ticks == 0:
+        if counter % player.player_parameters[4] == 0:
             player.shoot(2)
     elif elem[pygame.K_LEFT]:
         player.play()
-        if counter % player.shooting_ticks == 0:
+        if counter % player.player_parameters[4] == 0:
             player.shoot(3)
 
     for elem in bullet_group:
@@ -464,5 +485,5 @@ while running:
     player.render()
     pygame.display.flip()
     clock.tick(FPS)
-    counter = (counter + 1) % FPS
+    counter += 1
 pygame.quit()
