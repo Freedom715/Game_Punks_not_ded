@@ -31,10 +31,11 @@ def load_image(name, colorkey=None):
 
 
 # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
-art_parameters = {'meat': (load_image('art_meat.png', -1)),
-                  'sandwich': (load_image('art_sandwich.png', -1)),
-                  'breakfast': (load_image('art_breakfast.png', -1))}
-#                 'soup': (load_image('')), '': (load_image('')),d
+art_parameters = {'meat': (load_image('art_meat.png', -1), (0, 0, 1, 0, 0, 1, False)),
+                  'sandwich': (load_image('art_sandwich.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                  'breakfast': (load_image('art_breakfast.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                  'soup': (load_image('art_soup.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                  'onion': (load_image('art_onion.png', -1), (0, 0, 0, 0.7, 0, False))}
 #                 '': (load_image('')), '': (load_image('')), '': (load_image('')),
 #                 '': (load_image('')), '': (load_image('')), '': (load_image('')),
 #                 '': (load_image('')), '': (load_image('')), '': (load_image('')),
@@ -171,7 +172,7 @@ def generate_level(level):
                 Tile('wall', x, y, True, True, False)
             elif level[y][x] == '@':
                 Tile('empty', x, y, False, False, False)
-                new_player = Player(x, y, player_image_file, player_shoot_file, 1, 10)
+                new_player = Player(x, y, player_image_file, player_shoot_file, 1)
             elif level[y][x] == 'D':
                 Tile('door', x, y, True, False, False)
             elif level[y][x] == '0':
@@ -377,7 +378,7 @@ class Artifact(pygame.sprite.Sprite):
         self.pos_x = pos_x
         self.pos_y = pos_y
         # self.parameters = art_parameters[self.art_name][1:]
-        self.image = art_parameters[self.art_name]
+        self.image = art_parameters[self.art_name][0]
         self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 15)
 
     def check_collision(self):
