@@ -204,6 +204,8 @@ class Room:
                     self.door_down = Tile('door_down', x, y, False, True, False)
                 elif level[y][x] == '<':
                     self.door_left = Tile('door_left', x, y, False, True, False)
+                elif level[y][x] == 'R':
+                    Tile('rock', x, y, True, True, False)
                 elif level[y][x] == '0':
                     Tile('hole', x, y, True, False, True)
                 elif level[y][x] == "A":
@@ -540,7 +542,8 @@ tile_images = {'wall': pygame.transform.scale(load_image('wall.png'), (cell_size
                'door_right_closed': pygame.transform.rotate(load_image('door_closed.png'), 270),
                'door_down_closed': pygame.transform.rotate(load_image('door_closed.png'), 180),
                'door_left_closed': pygame.transform.rotate(load_image('door_closed.png'), 90),
-               'hole': pygame.transform.scale(load_image('hole.png'), (cell_size, cell_size))}
+               'hole': pygame.transform.scale(load_image('hole.png'), (cell_size, cell_size)),
+               'rock': pygame.transform.scale(load_image('rock.png'), (cell_size, cell_size))}
 tile_width, tile_height = 50, 50
 
 room_types = ["circle", "circle_in_square", "death_road", "diagonal", "lines", "mexico", "square_trap", "trapezoid"]
