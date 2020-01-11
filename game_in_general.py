@@ -14,9 +14,41 @@ size = WIDTH, HEIGHT = 850, 650
 screen = pygame.display.set_mode(size)
 
 clock = pygame.time.Clock()
-
-
 # основной персонаж
+
+
+def load_image(name, colorkey=None):
+    fullname = os.path.join('Images', name)
+    image = pygame.image.load(fullname).convert()
+    if colorkey is not None:
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+    else:
+        image = image.convert_alpha()
+    return image
+
+
+# player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
+art_parameters = {'meat': (load_image('art_meat.png', -1), (0, 0, 1, 0, 0, 1, False)),
+                  'sandwich': (load_image('art_sandwich.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                  'breakfast': (load_image('art_breakfast.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                  'soup': (load_image('art_soup.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                  'onion': (load_image('art_onion.png', -1), (0, 0, 0, 0.7, 0, False)),
+                  'screw': (load_image('art_screw.png', -1), (0, 0, 0, 0.3, -0.2, False)),
+                  'amulet': (load_image('art_amulet.png', -1), (0, 0, 1, 0, 0, 0, False)),
+                  'kosuha': (load_image('art_kosuha.png', -1), (-0.2, 0, 0, 0, 0, 0, True)),
+                  'dead_cat': (load_image('art_dead_cat.png', -1), (0, 1.5, 1, 0, 0, 0, True)),
+                  'mineral_water': (
+                      load_image('art_mineral_water.png', -1), (0, 0, 0.5, 0, 0, 0, False)),
+                  'good_morning': (
+                      load_image('art_good_morning.png', -1), (0, 0, 0.5, 0, -0.7, 1, False)),
+                  'eye': (load_image('art_eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
+
+
+#                 '': (load_image('')), '': (load_image(''))}
+#                 '': (load_image('')), '': (load_image('')), '': (load_image('')),
+#                 '': (load_image('')), '': (load_image('')), '': (load_image('')), }
 
 
 def get_frames(obj):
@@ -92,18 +124,6 @@ def get_frames(obj):
             image.seek(image.tell() + 1)
     except EOFError:
         pass
-
-
-def load_image(name, colorkey=None):
-    fullname = os.path.join('Images', name)
-    image = pygame.image.load(fullname).convert()
-    if colorkey is not None:
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
-    return image
 
 
 def terminate():
@@ -294,12 +314,16 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, speed, shooting_ticks):
+    def __init__(self, room, pos_x, pos_y, image, shooting_image, direction,
+                 parameters=None):
         super().__init__(player_group, all_sprites)
         self.room = room
         self.map = Map
+        if parameters is None:
+            parameters = [6, 1, 3.5, 5, 21, 3]
         self.direction = direction
-        self.shooting_ticks = shooting_ticks
+        # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
+        self.player_parameters = parameters
         self.images = {0: Image.open(image + "run_up.gif"),
                        1: Image.open(image + "run_right.gif"),
                        2: Image.open(image + "run_down.gif"),
@@ -311,7 +335,6 @@ class Player(pygame.sprite.Sprite):
                                 3: Image.open(shooting_image + "left.gif")}
         self.change_image(self.images, direction)
         self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
-        self.speed = speed
 
     def render(self):
         if self.running:
@@ -354,47 +377,49 @@ class Player(pygame.sprite.Sprite):
     def move(self, direction):
         self.change_direction(direction)
         self.play()
+        player_speed = self.player_parameters[0]
         if direction == 0:
-            collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - self.speed),
+            collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - player_speed),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
-                self.rect.y -= self.speed
+                self.rect.y -= player_speed
         if direction == 2:
-            collision_test_rect = pygame.Rect((self.rect.x, self.rect.y + self.speed),
+            collision_test_rect = pygame.Rect((self.rect.x, self.rect.y + player_speed),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
-                self.rect.y += self.speed
+                self.rect.y += player_speed
         if direction == 3:
-            collision_test_rect = pygame.Rect((self.rect.x - self.speed, self.rect.y),
+            collision_test_rect = pygame.Rect((self.rect.x - player_speed, self.rect.y),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
-                self.rect.x -= self.speed
+                self.rect.x -= player_speed
         if direction == 1:
-            collision_test_rect = pygame.Rect((self.rect.x + self.speed, self.rect.y),
+            collision_test_rect = pygame.Rect((self.rect.x + player_speed, self.rect.y),
                                               (player_size_x, player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      tiles_group]) == -1:
-                self.rect.x += self.speed
+                self.rect.x += player_speed
 
     def shoot(self, direction):
         # TODO: анимация стрельбы
         self.change_image(self.shooting_images, direction)
         Bullet(self.rect.x + player_size_x // 2 - 5,
                self.rect.y + player_size_y // 2 - 5,
-               "Images/bottle_", direction, 5, player_group)
+               "Images/bottle_", direction, player.player_parameters[3], player_group)
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, image, direction, speed, sprites_to_damage):
+    def __init__(self, x, y, image, direction, bullet_speed, sprites_to_damage):
         super().__init__(bullet_group, all_sprites)
         self.direction = direction
+        self.bullet_speed = bullet_speed
         self.images = {0: Image.open(image + "up.gif"),
                        1: Image.open(image + "right.gif"),
                        2: Image.open(image + "down.gif"),
@@ -411,7 +436,6 @@ class Bullet(pygame.sprite.Sprite):
         self.render()
         self.rect = self.image.get_rect().move(x, y)
         self.sprites_to_damage = sprites_to_damage
-        self.speed = speed
         self.walls = []
         for elem in tiles_group:
             if elem.block_bullets:
@@ -427,13 +451,13 @@ class Bullet(pygame.sprite.Sprite):
     def move(self):
         self.check_collision()
         if self.direction == 0:
-            self.rect.y -= self.speed
+            self.rect.y -= self.bullet_speed
         elif self.direction == 1:
-            self.rect.x += self.speed
+            self.rect.x += self.bullet_speed
         elif self.direction == 2:
-            self.rect.y += self.speed
+            self.rect.y += self.bullet_speed
         elif self.direction == 3:
-            self.rect.x -= self.speed
+            self.rect.x -= self.bullet_speed
 
     def render(self):
         if self.running:
@@ -472,19 +496,31 @@ class Bullet(pygame.sprite.Sprite):
 class Artifact(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(artifact_group)
+        self.art_name = choice(list(art_parameters.keys()))
         self.pos_x = pos_x
         self.pos_y = pos_y
-        self.image = pygame.Surface([20, 20])
-        self.image.fill((0, 0, 127))
-        self.rect = self.image.get_rect().move(tile_width * pos_x + 15, tile_height * pos_y + 15)
+        self.parameters = art_parameters[self.art_name][1]
+        self.image = art_parameters[self.art_name][0]
+        self.rect = self.image.get_rect().move(tile_width * pos_x + 10, tile_height * pos_y + 10)
 
     def check_collision(self):
         if pygame.sprite.spritecollide(self, player_group, False):
+            print(player.player_parameters)
+            for i in (0, 4, 3):
+                if player.player_parameters[i] + int(
+                        self.parameters[i] * player.player_parameters[i]) > 1:
+                    player.player_parameters[i] += int(
+                        self.parameters[i] * player.player_parameters[i])
+                else:
+                    player.player_parameters[i] = 1
+            player.player_parameters[2] += self.parameters[2] * player.player_parameters[2] * \
+                                           player.player_parameters[1]
+            if self.parameters[1] > player.player_parameters[1]:
+                player.player_parameters[1] = self.parameters[1]
+            player.player_parameters[5] += self.parameters[5]
             self.kill()
+            print(player.player_parameters)
 
-
-player_image_file = "Images/Cop_"
-player_shoot_file = "Images/Cop_shoot_"
 
 cell_size, player_size_x, player_size_y = 50, 50, 50
 
@@ -512,7 +548,7 @@ room = game_map.get_current_room()
 room.get_level()
 player = room.player
 game_map.update_doors()
-
+time_left = 0
 shooting_tick_delay = 10
 counter = 0
 
@@ -543,19 +579,19 @@ while running:
         player.move(1)
     if elem[pygame.K_UP]:
         player.play()
-        if counter % player.shooting_ticks == 0:
+        if counter % player.player_parameters[4] == 0:
             player.shoot(0)
     elif elem[pygame.K_RIGHT]:
         player.play()
-        if counter % player.shooting_ticks == 0:
+        if counter % player.player_parameters[4] == 0:
             player.shoot(1)
     elif elem[pygame.K_DOWN]:
         player.play()
-        if counter % player.shooting_ticks == 0:
+        if counter % player.player_parameters[4] == 0:
             player.shoot(2)
     elif elem[pygame.K_LEFT]:
         player.play()
-        if counter % player.shooting_ticks == 0:
+        if counter % player.player_parameters[4] == 0:
             player.shoot(3)
 
     for elem in bullet_group:
@@ -563,7 +599,6 @@ while running:
         elem.move()
 
     screen.fill((0, 0, 0))
-
     tiles_group.draw(screen)
     artifact_group.draw(screen)
     bullet_group.draw(screen)
@@ -580,8 +615,10 @@ while running:
         player = room.player
         game_map.update_doors()
 
+    for elem in bullet_group:
+        elem.render()
     player.render()
     pygame.display.flip()
     clock.tick(FPS)
-    counter = (counter + 1) % (shooting_tick_delay * 2)
+    counter += 1
 pygame.quit()
