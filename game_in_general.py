@@ -14,6 +14,9 @@ size = WIDTH, HEIGHT = 850, 650
 screen = pygame.display.set_mode(size)
 
 clock = pygame.time.Clock()
+
+player_image_file = 'Images/Cop_'
+player_shoot_file = 'Images/Cop_shoot_'
 # основной персонаж
 
 
@@ -191,7 +194,7 @@ class Room:
                 elif level[y][x] == '#':
                     Tile('wall', x, y, True, True, False)
                 elif level[y][x] == '@':
-                    new_player = Player(self, x, y, player_image_file, player_shoot_file, 1, 5, 10)
+                    new_player = Player(self, x, y, player_image_file, player_shoot_file, -1)
                     Tile('empty', x, y, False, False, False)
                 elif level[y][x] == '^':
                     self.door_up = Tile('door_up', x, y, False, True, False)
@@ -551,7 +554,6 @@ game_map.update_doors()
 time_left = 0
 shooting_tick_delay = 10
 counter = 0
-
 running = True
 
 start_screen()
