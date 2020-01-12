@@ -257,7 +257,8 @@ class Map:
         for i in range(self.rooms_count):
             direction = choice(self.rooms[-1].exits)
             coords = self.get_coords((x, y), direction)
-            while self.map[coords[0]][coords[1]] is not None or direction not in self.rooms[-1].exits:
+            while self.map[coords[0]][coords[1]] is not None or direction not in self.rooms[
+                -1].exits:
                 direction = choice(self.rooms[-1].exits)
                 coords = self.get_coords((x, y), direction)
             x, y = self.get_coords((x, y), direction)
@@ -428,21 +429,8 @@ class Enemy(pygame.sprite.Sprite):
     def shoot(self, direction):
         self.change_image(self.shooting_images, direction)
         if self.count % shooting_tick_delay == 0:
-            if direction == 0:
-                Bullet(self.rect.x + 15,
-                       self.rect.y - player_size_y // 2,
-                       "Images/tear_", direction, 5, player_group)
-            elif direction == 1:
-                Bullet(self.rect.x + player_size_x,
-                       self.rect.y + 10,
-                       "Images/tear_", direction, 5, player_group)
-            elif direction == 2:
-                Bullet(self.rect.x + 15,
-                       self.rect.y + player_size_y,
-                       "Images/tear_", direction, 5, player_group)
-            else:
-                Bullet(self.rect.x - player_size_x // 2,
-                       self.rect.y + 10,
+            Bullet(self.rect.x + player_size_x // 2 - 5,
+                   self.rect.y + player_size_y // 2 - 5,
                        "Images/tear_", direction, 5, player_group)
         self.count += 1
 
@@ -465,10 +453,12 @@ class Enemy(pygame.sprite.Sprite):
 
     def check_collision(self):
         if pygame.sprite.spritecollideany(self, bullet_group, False):
-            self.hp -= player.attack()
-            if self.hp - player.attack() <= 0:
-                self.kill()
-            print('Ouch!', self.hp)
+            if pygame.sprite.spritecollideany(self, bullet_group,
+                                              False).sprites_to_damage == enemy_group:
+                self.hp -= player.attack()
+                if self.hp - player.attack() <= 0:
+                    self.kill()
+                print('Ouch!', self.hp)
         if pygame.sprite.spritecollideany(self, player_group, False):
             print('Go away!')
 
@@ -480,7 +470,7 @@ class Player(pygame.sprite.Sprite):
         self.room = room
         self.map = Map
         if parameters is None:
-            parameters = [5, 1, 3.5, 5, 21, 3]
+            parameters = [5, 1, 3.5, 5, 21, 6]
         self.direction = direction
         # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
         self.player_parameters = parameters
@@ -533,6 +523,16 @@ class Player(pygame.sprite.Sprite):
     def change_direction(self, direction):
         if direction != self.direction:
             self.change_image(self.images, direction)
+
+    def check_collision(self):
+        if pygame.sprite.spritecollideany(self, bullet_group, False):
+            if pygame.sprite.spritecollideany(self, bullet_group,
+                                              False).sprites_to_damage == player_group:
+                self.player_parameters[5] -= 1
+                if self.player_parameters[5] == 0:
+                    self.kill()
+                    start_screen()
+                print('Ouch!', self.player_parameters[5])
 
     def move(self, direction):
         self.change_direction(direction)
@@ -770,6 +770,9 @@ while running:
     for elem in bullet_group:
         elem.render()
         elem.move()
+
+    for elem in player_group:
+        elem.check_collision()
 
     for elem in artifact_group:
         elem.check_collision()
