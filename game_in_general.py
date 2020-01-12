@@ -319,24 +319,40 @@ class Map:
                 self.map[self.current_y][self.current_x].door_up.image = tile_images[
                     'door_up_closed']
                 self.map[self.current_y][self.current_x].door_up.block_player = True
+            elif 2 not in self.map[self.current_y - 1][self.current_x].exits:
+                self.map[self.current_y][self.current_x].door_up.image = tile_images[
+                    'door_up_closed']
+                self.map[self.current_y][self.current_x].door_up.block_player = True
 
         if self.map[self.current_y][self.current_x].door_right is not None:
             if not self.map[self.current_y][self.current_x + 1]:
                 self.map[self.current_y][self.current_x].door_right.image = tile_images[
                     'door_right_closed']
                 self.map[self.current_y][self.current_x].door_right.block_player = True
+            elif 3 not in self.map[self.current_y][self.current_x + 1].exits:
+                self.map[self.current_y][self.current_x].door_up.image = tile_images[
+                    'door_up_closed']
+                self.map[self.current_y][self.current_x].door_up.block_player = True
 
         if self.map[self.current_y][self.current_x].door_down is not None:
             if not self.map[self.current_y + 1][self.current_x]:
                 self.map[self.current_y][self.current_x].door_down.image = tile_images[
                     'door_down_closed']
                 self.map[self.current_y][self.current_x].door_down.block_player = True
+            elif 0 not in self.map[self.current_y + 1][self.current_x].exits:
+                self.map[self.current_y][self.current_x].door_up.image = tile_images[
+                    'door_up_closed']
+                self.map[self.current_y][self.current_x].door_up.block_player = True
 
         if self.map[self.current_y][self.current_x].door_left is not None:
             if not self.map[self.current_y][self.current_x - 1]:
                 self.map[self.current_y][self.current_x].door_left.image = tile_images[
                     'door_left_closed']
                 self.map[self.current_y][self.current_x].door_left.block_player = True
+            elif 1 not in self.map[self.current_y][self.current_x - 1].exits:
+                self.map[self.current_y][self.current_x].door_up.image = tile_images[
+                    'door_up_closed']
+                self.map[self.current_y][self.current_x].door_up.block_player = True
 
 
 class Tile(pygame.sprite.Sprite):
