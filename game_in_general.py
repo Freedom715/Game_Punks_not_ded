@@ -242,12 +242,13 @@ class Map:
 
     def generate_map(self):
         x, y = self.current_x, self.current_y
-        self.map[y][x] = Room("circle")
-        self.rooms.append(Room("circle"))
+        self.map[y][x] = Room("start")
+        self.rooms.append(Room("start"))
         for i in range(self.rooms_count):
             direction = choice([0, 1, 2, 3])
             coords = self.get_coords((x, y), direction)
-            while self.map[coords[0]][coords[1]] is not None or direction not in self.rooms[-1].exits:
+            while self.map[coords[0]][coords[1]] is not None or direction not in self.rooms[
+                -1].exits:
                 direction = choice([0, 1, 2, 3])
                 coords = self.get_coords((x, y), direction)
             x, y = self.get_coords((x, y), direction)
@@ -266,7 +267,8 @@ class Map:
     def check_door(self):
         if self.map[self.current_y][self.current_x].door_up is not None:
             if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
-                                                     self.map[self.current_y][self.current_x].door_up):
+                                                     self.map[self.current_y][
+                                                         self.current_x].door_up):
                 if self.map[self.current_y - 1][self.current_x] is not None:
                     self.map[self.current_y - 1][self.current_x].get_level()
                     self.current_y -= 1
@@ -275,7 +277,8 @@ class Map:
                     return True
         if self.map[self.current_y][self.current_x].door_right is not None:
             if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
-                                                     self.map[self.current_y][self.current_x].door_right):
+                                                     self.map[self.current_y][
+                                                         self.current_x].door_right):
                 if self.map[self.current_y][self.current_x + 1] is not None:
                     self.map[self.current_y][self.current_x + 1].get_level()
                     self.current_x += 1
@@ -284,7 +287,8 @@ class Map:
                     return True
         if self.map[self.current_y][self.current_x].door_down is not None:
             if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
-                                                     self.map[self.current_y][self.current_x].door_down):
+                                                     self.map[self.current_y][
+                                                         self.current_x].door_down):
                 if self.map[self.current_y + 1][self.current_x] is not None:
                     self.map[self.current_y + 1][self.current_x].get_level()
                     self.current_y += 1
@@ -293,7 +297,8 @@ class Map:
                     return True
         if self.map[self.current_y][self.current_x].door_left is not None:
             if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
-                                                     self.map[self.current_y][self.current_x].door_left):
+                                                     self.map[self.current_y][
+                                                         self.current_x].door_left):
                 if self.map[self.current_y][self.current_x - 1] is not None:
                     self.map[self.current_y][self.current_x - 1].get_level()
                     self.current_x -= 1
@@ -304,22 +309,26 @@ class Map:
     def update_doors(self):
         if self.map[self.current_y][self.current_x].door_up is not None:
             if not self.map[self.current_y - 1][self.current_x]:
-                self.map[self.current_y][self.current_x].door_up.image = tile_images['door_up_closed']
+                self.map[self.current_y][self.current_x].door_up.image = tile_images[
+                    'door_up_closed']
                 self.map[self.current_y][self.current_x].door_up.block_player = True
 
         if self.map[self.current_y][self.current_x].door_right is not None:
             if not self.map[self.current_y][self.current_x + 1]:
-                self.map[self.current_y][self.current_x].door_right.image = tile_images['door_right_closed']
+                self.map[self.current_y][self.current_x].door_right.image = tile_images[
+                    'door_right_closed']
                 self.map[self.current_y][self.current_x].door_right.block_player = True
 
         if self.map[self.current_y][self.current_x].door_down is not None:
             if not self.map[self.current_y + 1][self.current_x]:
-                self.map[self.current_y][self.current_x].door_down.image = tile_images['door_down_closed']
+                self.map[self.current_y][self.current_x].door_down.image = tile_images[
+                    'door_down_closed']
                 self.map[self.current_y][self.current_x].door_down.block_player = True
 
         if self.map[self.current_y][self.current_x].door_left is not None:
             if not self.map[self.current_y][self.current_x - 1]:
-                self.map[self.current_y][self.current_x].door_left.image = tile_images['door_left_closed']
+                self.map[self.current_y][self.current_x].door_left.image = tile_images[
+                    'door_left_closed']
                 self.map[self.current_y][self.current_x].door_left.block_player = True
 
 
@@ -342,6 +351,7 @@ class Enemy(pygame.sprite.Sprite):
         self.direction = direction
         self.x = pos_x
         self.y = pos_y
+        self.count = 0
         self.images = {0: Image.open(image + "run_up.gif"),
                        1: Image.open(image + "run_right.gif"),
                        2: Image.open(image + "run_down.gif"),
@@ -394,14 +404,46 @@ class Enemy(pygame.sprite.Sprite):
 
     def shoot(self, direction):
         self.change_image(self.shooting_images, direction)
-        Bullet(self.rect.x + player_size_x // 2 - 5,
-               self.rect.y + player_size_y // 2 - 5,
-               "Images/bottle_", direction, player.player_parameters[3], player_group)
+        if self.count % shooting_tick_delay == 0:
+            if direction == 0:
+                Bullet(self.rect.x + 15,
+                       self.rect.y - player_size_y // 2,
+                       "Images/tear_", direction, 5, player_group)
+            elif direction == 1:
+                Bullet(self.rect.x + player_size_x,
+                       self.rect.y + 10,
+                       "Images/tear_", direction, 5, player_group)
+            elif direction == 2:
+                Bullet(self.rect.x + 15,
+                       self.rect.y + player_size_y,
+                       "Images/tear_", direction, 5, player_group)
+            else:
+                Bullet(self.rect.x - player_size_x // 2,
+                       self.rect.y + 10,
+                       "Images/tear_", direction, 5, player_group)
+        self.count += 1
+
+    def check_player_coords(self):
+        if player.rect.x - 10 <= self.rect.x <= player.rect.x + 10 and player.rect.y <= self.rect.y:
+            self.play()
+            self.shoot(0)
+        elif player.rect.x - 10 <= self.rect.x <= player.rect.x + 10 and player.rect.y >= self.rect.y:
+            self.play()
+            self.shoot(2)
+        elif player.rect.y - player_size_y <= self.rect.y <= player.rect.y + player_size_x and player.rect.x <= self.rect.x:
+            self.play()
+            self.shoot(3)
+        elif player.rect.y - player_size_y <= self.rect.y <= player.rect.y + player_size_x and player.rect.x >= self.rect.x:
+            self.play()
+            self.shoot(1)
+        else:
+            self.play()
+            self.change_image(self.images, -1)
 
     def check_collision(self):
         if pygame.sprite.spritecollideany(self, bullet_group, False):
             self.hp -= player.attack()
-            if self.hp <= 0:
+            if self.hp - player.attack() <= 0:
                 self.kill()
             print('Ouch!', self.hp)
         if pygame.sprite.spritecollideany(self, player_group, False):
@@ -415,7 +457,7 @@ class Player(pygame.sprite.Sprite):
         self.room = room
         self.map = Map
         if parameters is None:
-            parameters = [6, 1, 3.5, 5, 21, 3]
+            parameters = [5, 1, 3.5, 5, 21, 3]
         self.direction = direction
         # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
         self.player_parameters = parameters
@@ -507,7 +549,7 @@ class Player(pygame.sprite.Sprite):
         self.change_image(self.shooting_images, direction)
         Bullet(self.rect.x + player_size_x // 2 - 5,
                self.rect.y + player_size_y // 2 - 5,
-               "Images/bottle_", direction, player.player_parameters[3], player_group)
+               "Images/bottle_", direction, player.player_parameters[3], enemy_group)
 
     def attack(self):
         return self.player_parameters[1] * self.player_parameters[2]
@@ -542,7 +584,7 @@ class Bullet(pygame.sprite.Sprite):
     def check_collision(self):
         if pygame.sprite.spritecollideany(self, self.walls):
             self.kill()
-        if pygame.sprite.spritecollideany(self, enemy_group):
+        if pygame.sprite.spritecollideany(self, self.sprites_to_damage):
             self.kill()
 
     def move(self):
@@ -632,15 +674,17 @@ tile_images = {'wall': pygame.transform.scale(load_image('wall.png'), (cell_size
                'door_right': pygame.transform.rotate(load_image('door.png'), 270),
                'door_down': pygame.transform.rotate(load_image('door.png'), 180),
                'door_left': pygame.transform.rotate(load_image('door.png'), 90),
-               'door_up_closed': pygame.transform.scale(load_image('door_closed.png'), (cell_size, cell_size)),
+               'door_up_closed': pygame.transform.scale(load_image('door_closed.png'),
+                                                        (cell_size, cell_size)),
                'door_right_closed': pygame.transform.rotate(load_image('door_closed.png'), 270),
                'door_down_closed': pygame.transform.rotate(load_image('door_closed.png'), 180),
                'door_left_closed': pygame.transform.rotate(load_image('door_closed.png'), 90),
                'hole': pygame.transform.scale(load_image('hole.png'), (cell_size, cell_size)),
-               'rock': pygame.transform.scale(load_image('rock.png'), (cell_size, cell_size))}
+               'rock': pygame.transform.scale(load_image('rock.png', -1), (cell_size, cell_size))}
 tile_width, tile_height = 50, 50
 
-room_types = ["circle", "circle_in_square", "death_road", "diagonal", "lines", "mexico", "square_trap", "trapezoid"]
+room_types = ["circle", "circle_in_square", "death_road", "diagonal", "lines", "mexico",
+              "square_trap", "trapezoid"]
 
 # player, level_x, level_y = generate_level(load_level('map.txt'))
 game_map = Map(5)
@@ -693,10 +737,6 @@ while running:
         if counter % player.player_parameters[4] == 0:
             player.shoot(3)
 
-    for elem in bullet_group:
-        elem.render()
-        elem.move()
-
     screen.fill((0, 0, 0))
     tiles_group.draw(screen)
     enemy_group.draw(screen)
@@ -704,10 +744,15 @@ while running:
     bullet_group.draw(screen)
     player_group.draw(screen)
 
+    for elem in bullet_group:
+        elem.render()
+        elem.move()
+
     for elem in artifact_group:
         elem.check_collision()
 
     for elem in enemy_group:
+        elem.check_player_coords()
         elem.check_collision()
 
     if game_map.check_door():
