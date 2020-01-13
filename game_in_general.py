@@ -230,6 +230,9 @@ class Room:
 
         return new_player, x, y, enemies
 
+    def __repr__(self):
+        return 'Room(' + self.filename + ')'
+
 
 class Map:
     def __init__(self, rooms_count):
@@ -254,7 +257,7 @@ class Map:
         x, y = self.current_x, self.current_y
         self.map[y][x] = Room("start")
         self.rooms.append(Room("start"))
-        for i in range(self.rooms_count):
+        for i in range(self.rooms_count + len(special_rooms)):
             direction = choice(self.rooms[-1].exits)
             coords = self.get_coords((x, y), direction)
             while self.map[coords[0]][coords[1]] is not None or direction not in self.rooms[
@@ -262,13 +265,16 @@ class Map:
                 direction = choice(self.rooms[-1].exits)
                 coords = self.get_coords((x, y), direction)
             x, y = self.get_coords((x, y), direction)
-
-            room = Room(choice(room_types))
+            room_type = choice(room_types)
+            room = Room(room_type)
             while (direction + 2) % 4 not in room.exits:
-                room = Room(choice(room_types))
-
+                room_type = choice(room_types)
+                room = Room(room_type)
+            if room_type in special_rooms:
+                room_types.remove(room_type)
             self.map[y][x] = room
             self.rooms.append(room)
+
         for elem in self.map:
             print(elem)
 
@@ -431,7 +437,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.count % shooting_tick_delay == 0:
             Bullet(self.rect.x + player_size_x // 2 - 5,
                    self.rect.y + player_size_y // 2 - 5,
-                       "Images/tear_", direction, 5, player_group)
+                   "Images/tear_", direction, 5, player_group)
         self.count += 1
 
     def check_player_coords(self):
@@ -707,10 +713,11 @@ tile_images = {'wall': pygame.transform.scale(load_image('wall.png'), (cell_size
 tile_width, tile_height = 50, 50
 
 room_types = ["circle", "circle_in_square", "death_road", "diagonal", "lines", "mexico",
-              "square_trap", "trapezoid"]
+              "square_trap", "trapezoid", "shop", "artifact_room", "boss_room"]
+special_rooms = ["shop", "artifact_room", "boss_room"]
 
 # player, level_x, level_y = generate_level(load_level('map.txt'))
-game_map = Map(5)
+game_map = Map(11)
 room = game_map.get_current_room()
 room.get_level(0)
 player = room.player
