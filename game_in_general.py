@@ -10,16 +10,6 @@ from pygame.locals import *
 FPS = 50
 
 pygame.init()
-size = WIDTH, HEIGHT = 850, 650
-screen = pygame.display.set_mode(size)
-
-clock = pygame.time.Clock()
-
-player_image_file = 'Images/Cop_'
-player_shoot_file = 'Images/Cop_shoot_'
-
-
-# основной персонаж
 
 
 def load_image(name, colorkey=None):
@@ -32,28 +22,6 @@ def load_image(name, colorkey=None):
     else:
         image = image.convert_alpha()
     return image
-
-
-# player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
-art_parameters = {'meat': (load_image('art_meat.png', -1), (0, 0, 1, 0, 0, 1, False)),
-                  'sandwich': (load_image('art_sandwich.png', -1), (0, 0, 0, 0, 0, 1, False)),
-                  'breakfast': (load_image('art_breakfast.png', -1), (0, 0, 0, 0, 0, 1, False)),
-                  'soup': (load_image('art_soup.png', -1), (0, 0, 0, 0, 0, 1, False)),
-                  'onion': (load_image('art_onion.png', -1), (0, 0, 0, 0.7, 0, False)),
-                  'screw': (load_image('art_screw.png', -1), (0, 0, 0, 0.3, -0.2, False)),
-                  'amulet': (load_image('art_amulet.png', -1), (0, 0, 1, 0, 0, 0, False)),
-                  'kosuha': (load_image('art_kosuha.png', -1), (-0.2, 0, 0, 0, 0, 0, True)),
-                  'dead_cat': (load_image('art_dead_cat.png', -1), (0, 1.5, 1, 0, 0, 0, True)),
-                  'mineral_water': (
-                      load_image('art_mineral_water.png', -1), (0, 0, 0.5, 0, 0, 0, False)),
-                  'good_morning': (
-                      load_image('art_good_morning.png', -1), (0, 0, 0.5, 0, -0.7, 1, False)),
-                  'eye': (load_image('art_eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
-
-
-#                 '': (load_image('')), '': (load_image(''))}
-#                 '': (load_image('')), '': (load_image('')), '': (load_image('')),
-#                 '': (load_image('')), '': (load_image('')), '': (load_image('')), }
 
 
 def get_frames(obj):
@@ -131,46 +99,185 @@ def get_frames(obj):
         pass
 
 
-def terminate():
-    pygame.quit()
-    sys.exit()
+class Main:
+    def __init__(self):
+        self.size = self.WIDTH, self.HEIGHT = 850, 650
+        self.screen = pygame.display.set_mode(self.size)
+        self.clock = pygame.time.Clock()
+        self.player_image_file = 'Images/Cop_'
+        self.player_shoot_file = 'Images/Cop_shoot_'
+        self.cell_size, self.player_size_x, self.player_size_y = 50, 50, 50
 
+        self.tile_images = {'wall': pygame.transform.scale(load_image('wall.png'), (self.cell_size, self.cell_size)),
+                            'empty': pygame.transform.scale(load_image('floor.png'), (self.cell_size, self.cell_size)),
+                            'door_up': pygame.transform.scale(load_image('door.png'), (self.cell_size, self.cell_size)),
+                            'door_right': pygame.transform.rotate(load_image('door.png'), 270),
+                            'door_down': pygame.transform.rotate(load_image('door.png'), 180),
+                            'door_left': pygame.transform.rotate(load_image('door.png'), 90),
+                            'door_up_closed': pygame.transform.scale(load_image('door_closed.png'),
+                                                                     (self.cell_size, self.cell_size)),
+                            'door_right_closed': pygame.transform.rotate(load_image('door_closed.png'), 270),
+                            'door_down_closed': pygame.transform.rotate(load_image('door_closed.png'), 180),
+                            'door_left_closed': pygame.transform.rotate(load_image('door_closed.png'), 90),
+                            'hole': pygame.transform.scale(load_image('hole.png'), (self.cell_size, self.cell_size)),
+                            'rock': pygame.transform.scale(load_image('rock.png', -1),
+                                                           (self.cell_size, self.cell_size))}
+        self.tile_width, self.tile_height = 50, 50
 
-def start_screen():
-    intro_text = ["УРОВНИ", "", "Выберите уровни"]
+        self.room_types = ["circle", "circle_in_square", "death_road", "diagonal", "lines", "mexico",
+                           "square_trap", "trapezoid"]
+        self.running = True
 
-    fon = pygame.transform.scale(load_image('fon.png'), (WIDTH, HEIGHT))
-    screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 30)
-    text_coord = 50
-    for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('black'))
-        intro_rect = string_rendered.get_rect()
-        text_coord += 10
-        intro_rect.top = text_coord
-        intro_rect.x = 10
-        text_coord += intro_rect.height
-        screen.blit(string_rendered, intro_rect)
+        # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
+        self.art_parameters = {'meat': (load_image('art_meat.png', -1), (0, 0, 1, 0, 0, 1, False)),
+                               'sandwich': (load_image('art_sandwich.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                               'breakfast': (load_image('art_breakfast.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                               'soup': (load_image('art_soup.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                               'onion': (load_image('art_onion.png', -1), (0, 0, 0, 0.7, 0, False)),
+                               'screw': (load_image('art_screw.png', -1), (0, 0, 0, 0.3, -0.2, False)),
+                               'amulet': (load_image('art_amulet.png', -1), (0, 0, 1, 0, 0, 0, False)),
+                               'kosuha': (load_image('art_kosuha.png', -1), (-0.2, 0, 0, 0, 0, 0, True)),
+                               'dead_cat': (load_image('art_dead_cat.png', -1), (0, 1.5, 1, 0, 0, 0, True)),
+                               'mineral_water': (
+                                   load_image('art_mineral_water.png', -1), (0, 0, 0.5, 0, 0, 0, False)),
+                               'good_morning': (
+                                   load_image('art_good_morning.png', -1), (0, 0, 0.5, 0, -0.7, 1, False)),
+                               'eye': (load_image('art_eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
 
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                terminate()
-            elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                return
-        pygame.display.flip()
-        clock.tick(FPS)
+        self.counter = 0
+        self.shooting_tick_delay = 10
+
+        self.start_screen()
+        self.load_map(5)
+        self.load_room(0)
+        self.main_cycle()
+
+    def load_map(self, rooms_count):
+        self.game_map = Map(rooms_count, self)
+
+    def load_room(self, direction):
+        self.all_sprites, self.tiles_group, self.artifact_group = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
+        self.player_group, self.bullet_group, self.enemy_group = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
+        self.room = self.game_map.get_current_room()
+        self.room.get_level(direction)
+        self.player = self.room.player
+        self.game_map.update_doors()
+
+    def start_screen(self):
+        intro_text = ["УРОВНИ", "", "Выберите уровни"]
+        fon = pygame.transform.scale(load_image('fon.png'), (self.WIDTH, self.HEIGHT))
+        self.screen.blit(fon, (0, 0))
+        font = pygame.font.Font(None, 30)
+        text_coord = 50
+        for line in intro_text:
+            string_rendered = font.render(line, 1, pygame.Color('black'))
+            intro_rect = string_rendered.get_rect()
+            text_coord += 10
+            intro_rect.top = text_coord
+            intro_rect.x = 10
+            text_coord += intro_rect.height
+            self.screen.blit(string_rendered, intro_rect)
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.terminate()
+                elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                    return
+            pygame.display.flip()
+            self.clock.tick(FPS)
+
+    def terminate(self):
+        pygame.quit()
+        sys.exit()
+
+    def reset(self):
+        self.__init__()
+
+    def main_cycle(self):
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                if event.type == pygame.KEYDOWN:
+                    self.counter = 0
+                if event.type == pygame.KEYUP:
+                    self.player.cur = 0
+                    self.player.change_image(self.player.images, self.player.direction)
+                    self.player.change_direction(-1)
+            keys = pygame.key.get_pressed()
+
+            if keys[pygame.K_ESCAPE] == 1:
+                self.running = False
+            if keys[pygame.K_w] == 1:
+                self.player.move(0)
+            if keys[pygame.K_s] == 1:
+                self.player.move(2)
+            if keys[pygame.K_a] == 1:
+                self.player.move(3)
+            if keys[pygame.K_d] == 1:
+                self.player.move(1)
+            if keys[pygame.K_UP]:
+                self.player.play()
+                if self.counter % self.player.player_parameters[4] == 0:
+                    self.player.shoot(0)
+            elif keys[pygame.K_RIGHT]:
+                self.player.play()
+                if self.counter % self.player.player_parameters[4] == 0:
+                    self.player.shoot(1)
+            elif keys[pygame.K_DOWN]:
+                self.player.play()
+                if self.counter % self.player.player_parameters[4] == 0:
+                    self.player.shoot(2)
+            elif keys[pygame.K_LEFT]:
+                self.player.play()
+                if self.counter % self.player.player_parameters[4] == 0:
+                    self.player.shoot(3)
+
+            self.screen.fill((0, 0, 0))
+            self.tiles_group.draw(self.screen)
+            self.enemy_group.draw(self.screen)
+            self.artifact_group.draw(self.screen)
+            self.bullet_group.draw(self.screen)
+            self.player_group.draw(self.screen)
+
+            for elem in self.bullet_group:
+                elem.render()
+                elem.move()
+
+            for elem in self.player_group:
+                elem.check_collision()
+
+            for elem in self.artifact_group:
+                elem.check_collision()
+
+            for elem in self.enemy_group:
+                elem.check_player_coords()
+                elem.check_collision()
+
+            door = self.game_map.check_door()
+            if door[0]:
+                self.load_room(door[1])
+
+            for elem in self.bullet_group:
+                elem.render()
+
+            self.player.render()
+            pygame.display.flip()
+            self.clock.tick(FPS)
+            self.counter += 1
 
 
 class Room:
-    def __init__(self, filename):
-        self.filename, self.exits = filename, []
+    def __init__(self, filename, main):
+        self.main = main
+        self.filename, self.exits, self.enemies = filename, [], []
         self.door_up, self.door_right, self.door_down, self.door_left = None, None, None, None
         self.load_level(self.filename + ".txt")
         self.player, self.width, self.height = None, None, None
 
     def get_level(self, direction):
-        self.player, self.width, self.height, self.enemies = self.generate_level(
+        self.player, self.width, self.height = self.generate_level(
             self.load_level(self.filename + ".txt"), direction)
 
     def load_level(self, filename):
@@ -190,57 +297,63 @@ class Room:
 
     def generate_level(self, level, player_direction):
         new_player, x, y = None, None, None
-        enemies = []
         for y in range(len(level)):
             for x in range(len(level[y])):
                 if level[y][x] == '.':
-                    Tile('empty', x, y, False, False, False)
+                    Tile('empty', x, y, False, False, False, self.main)
                 elif level[y][x] == '#':
-                    Tile('wall', x, y, True, True, False)
+                    Tile('wall', x, y, True, True, False, self.main)
                 elif level[y][x] == '@':
                     if self.filename == "start":
-                        new_player = Player(self, x, y, player_image_file, player_shoot_file, -1)
-                    Tile('empty', x, y, False, False, False)
+                        new_player = Player(self, x, y, self.main.player_image_file, self.main.player_shoot_file, -1,
+                                            self.main)
+                    Tile('empty', x, y, False, False, False, self.main)
                 elif level[y][x] == 'E':
-                    enemies.append(Enemy(self, x, y, player_image_file, player_shoot_file, -1))
-                    Tile('empty', x, y, False, False, False)
+                    self.enemies.append(
+                        Enemy(self, x, y, self.main.player_image_file, self.main.player_shoot_file, -1, self.main))
+                    Tile('empty', x, y, False, False, False, self.main)
                 if level[y][x] == 'R':
-                    Tile('rock', x, y, True, True, False)
+                    Tile('rock', x, y, True, True, False, self.main)
                 elif level[y][x] == '0':
-                    Tile('hole', x, y, True, False, True)
+                    Tile('hole', x, y, True, False, True, self.main)
                 elif level[y][x] == "A":
-                    Tile('empty', x, y, False, False, False)
-                    Artifact(x, y)
+                    Tile('empty', x, y, False, False, False, self.main)
+                    Artifact(x, y, self.main)
                 elif level[y][x] == '^':
-                    self.door_up = Tile('door_up', x, y, False, True, False)
+                    self.door_up = Tile('door_up', x, y, False, True, False, self.main)
                     if player_direction == 0 and self.filename != "start":
-                        new_player = Player(self, x, y + 1, player_image_file, player_shoot_file, -1)
+                        new_player = Player(self, x, y + 1, self.main.player_image_file, self.main.player_shoot_file,
+                                            -1, self.main)
                 elif level[y][x] == '>':
-                    self.door_right = Tile('door_right', x, y, False, True, False)
+                    self.door_right = Tile('door_right', x, y, False, True, False, self.main)
                     if player_direction == 1 and self.filename != "start":
-                        new_player = Player(self, x - 1, y, player_image_file, player_shoot_file, -1)
+                        new_player = Player(self, x - 1, y, self.main.player_image_file, self.main.player_shoot_file,
+                                            -1, self.main)
                 elif level[y][x] == 'v':
-                    self.door_down = Tile('door_down', x, y, False, True, False)
+                    self.door_down = Tile('door_down', x, y, False, True, False, self.main)
                     if player_direction == 2 and self.filename != "start":
-                        new_player = Player(self, x, y - 1, player_image_file, player_shoot_file, -1)
+                        new_player = Player(self, x, y - 1, self.main.player_image_file, self.main.player_shoot_file,
+                                            -1, self.main)
                 elif level[y][x] == '<':
-                    self.door_left = Tile('door_left', x, y, False, True, False)
+                    self.door_left = Tile('door_left', x, y, False, True, False, self.main)
                     if player_direction == 3 and self.filename != "start":
-                        new_player = Player(self, x + 1, y, player_image_file, player_shoot_file, -1)
+                        new_player = Player(self, x + 1, y, self.main.player_image_file, self.main.player_shoot_file,
+                                            -1, self.main)
 
-        return new_player, x, y, enemies
+        return new_player, x, y
 
     def __repr__(self):
         return 'Room(' + self.filename + ')'
 
 
 class Map:
-    def __init__(self, rooms_count):
+    def __init__(self, rooms_count, main):
         self.rooms_count = rooms_count
         self.rooms = []
         self.map = [[None] * (2 * rooms_count + 1) for _ in range(2 * rooms_count + 1)]
-        self.current_x = rooms_count - 1
-        self.current_y = rooms_count - 1
+        self.current_x = rooms_count
+        self.current_y = rooms_count
+        self.main = main
         self.generate_map()
 
     def get_coords(self, coords, direction):
@@ -255,28 +368,69 @@ class Map:
 
     def generate_map(self):
         x, y = self.current_x, self.current_y
-        self.map[y][x] = Room("start")
-        self.rooms.append(Room("start"))
-        for i in range(self.rooms_count + len(special_rooms)):
-            direction = choice(self.rooms[-1].exits)
-            coords = self.get_coords((x, y), direction)
-            while self.map[coords[0]][coords[1]] is not None or direction not in self.rooms[
-                -1].exits:
-                direction = choice(self.rooms[-1].exits)
-                coords = self.get_coords((x, y), direction)
-            x, y = self.get_coords((x, y), direction)
-            room_type = choice(room_types)
-            room = Room(room_type)
-            while (direction + 2) % 4 not in room.exits:
-                room_type = choice(room_types)
-                room = Room(room_type)
-            if room_type in special_rooms:
-                room_types.remove(room_type)
-            self.map[y][x] = room
-            self.rooms.append(room)
+        self.map[y][x] = Room("start", self.main)
+        self.rooms.append(Room("start", self.main))
 
-        for elem in self.map:
-            print(elem)
+        special_rooms_directions = {}
+
+        directions = [0, 1, 2, 3]
+        for elem in ["boss_room", "artifact_room", "shop"]:
+            direction = choice(directions)
+            special_rooms_directions[direction] = elem
+            directions.remove(direction)
+
+        directions = [0, 1, 2, 3]
+
+        for main_direction in directions:
+            x, y = self.current_x, self.current_y
+            for i in range(self.rooms_count):
+                if i in range(1):
+                    direction = main_direction
+                    x, y = self.get_coords((x, y), direction)
+                else:
+                    # for elem in self.map:
+                    #     for elem1 in elem:
+                    #         if elem1:
+                    #             print(elem1.filename[0:2], end=" ")
+                    #         else:
+                    #             print("00", end=" ")
+                    #     print()
+                    # print()
+                    direction = choice(self.rooms[-1].exits)
+                    coords = self.get_coords((x, y), direction)
+                    while (self.map[coords[1]][coords[0]] is not None or
+                           (direction + 2) % 4 == main_direction):
+                        direction = choice(self.rooms[-1].exits)
+                        coords = self.get_coords((x, y), direction)
+                        # print("dir")
+                    x, y = self.get_coords((x, y), direction)
+
+                if i != self.rooms_count - 1:
+                    room = Room(choice(self.main.room_types), self.main)
+                    while (direction + 2) % 4 not in room.exits or not self.room_check_neighbours(room, x, y):
+                        room = Room(choice(self.main.room_types), self.main)
+
+                    self.map[y][x] = room
+                    self.rooms.append(room)
+                else:
+                    if direction in special_rooms_directions:
+                        self.map[y][x] = Room(special_rooms_directions[direction], self.main)
+
+            for elem in self.map:
+                for elem1 in elem:
+                    if elem1:
+                        print(elem1.filename[0:2], end=" ")
+                    else:
+                        print("00", end=" ")
+                print()
+            print()
+
+    def room_check_neighbours(self, room, x, y):
+        for elem in room.exits:
+            coords = self.get_coords((x, y), elem)
+            if not self.map[coords[1]][coords[0]]:
+                return True
+        return False
 
     def get_current_room(self):
         return self.map[self.current_y][self.current_x]
@@ -288,8 +442,6 @@ class Map:
                                                          self.current_x].door_up):
                 if self.map[self.current_y - 1][self.current_x] is not None:
                     self.current_y -= 1
-                    for elem in enemy_group:
-                        elem.kill()
                     return True, 2
         if self.map[self.current_y][self.current_x].door_right is not None:
             if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
@@ -297,8 +449,6 @@ class Map:
                                                          self.current_x].door_right):
                 if self.map[self.current_y][self.current_x + 1] is not None:
                     self.current_x += 1
-                    for elem in enemy_group:
-                        elem.kill()
                     return True, 3
         if self.map[self.current_y][self.current_x].door_down is not None:
             if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
@@ -306,8 +456,6 @@ class Map:
                                                          self.current_x].door_down):
                 if self.map[self.current_y + 1][self.current_x] is not None:
                     self.current_y += 1
-                    for elem in enemy_group:
-                        elem.kill()
                     return True, 0
         if self.map[self.current_y][self.current_x].door_left is not None:
             if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
@@ -315,66 +463,65 @@ class Map:
                                                          self.current_x].door_left):
                 if self.map[self.current_y][self.current_x - 1] is not None:
                     self.current_x -= 1
-                    for elem in enemy_group:
-                        elem.kill()
                     return True, 1
         return False, 0
 
     def update_doors(self):
         if self.map[self.current_y][self.current_x].door_up is not None:
             if not self.map[self.current_y - 1][self.current_x]:
-                self.map[self.current_y][self.current_x].door_up.image = tile_images[
+                self.map[self.current_y][self.current_x].door_up.image = self.main.tile_images[
                     'door_up_closed']
                 self.map[self.current_y][self.current_x].door_up.block_player = True
             elif 2 not in self.map[self.current_y - 1][self.current_x].exits:
-                self.map[self.current_y][self.current_x].door_up.image = tile_images[
+                self.map[self.current_y][self.current_x].door_up.image = self.main.tile_images[
                     'door_up_closed']
                 self.map[self.current_y][self.current_x].door_up.block_player = True
 
         if self.map[self.current_y][self.current_x].door_right is not None:
             if not self.map[self.current_y][self.current_x + 1]:
-                self.map[self.current_y][self.current_x].door_right.image = tile_images[
+                self.map[self.current_y][self.current_x].door_right.image = self.main.tile_images[
                     'door_right_closed']
                 self.map[self.current_y][self.current_x].door_right.block_player = True
             elif 3 not in self.map[self.current_y][self.current_x + 1].exits:
-                self.map[self.current_y][self.current_x].door_up.image = tile_images[
+                self.map[self.current_y][self.current_x].door_right.image = self.main.tile_images[
                     'door_up_closed']
-                self.map[self.current_y][self.current_x].door_up.block_player = True
+                self.map[self.current_y][self.current_x].door_right.block_player = True
 
         if self.map[self.current_y][self.current_x].door_down is not None:
             if not self.map[self.current_y + 1][self.current_x]:
-                self.map[self.current_y][self.current_x].door_down.image = tile_images[
+                self.map[self.current_y][self.current_x].door_down.image = self.main.tile_images[
                     'door_down_closed']
                 self.map[self.current_y][self.current_x].door_down.block_player = True
             elif 0 not in self.map[self.current_y + 1][self.current_x].exits:
-                self.map[self.current_y][self.current_x].door_up.image = tile_images[
+                self.map[self.current_y][self.current_x].door_down.image = self.main.tile_images[
                     'door_up_closed']
-                self.map[self.current_y][self.current_x].door_up.block_player = True
+                self.map[self.current_y][self.current_x].door_down.block_player = True
 
         if self.map[self.current_y][self.current_x].door_left is not None:
             if not self.map[self.current_y][self.current_x - 1]:
-                self.map[self.current_y][self.current_x].door_left.image = tile_images[
+                self.map[self.current_y][self.current_x].door_left.image = self.main.tile_images[
                     'door_left_closed']
                 self.map[self.current_y][self.current_x].door_left.block_player = True
             elif 1 not in self.map[self.current_y][self.current_x - 1].exits:
-                self.map[self.current_y][self.current_x].door_up.image = tile_images[
+                self.map[self.current_y][self.current_x].door_left.image = self.main.tile_images[
                     'door_up_closed']
-                self.map[self.current_y][self.current_x].door_up.block_player = True
+                self.map[self.current_y][self.current_x].door_left.block_player = True
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, tile_type, pos_x, pos_y, block_player, block_bullets, damage_player):
-        super().__init__(tiles_group, all_sprites)
-        self.image = tile_images[tile_type]
-        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+    def __init__(self, tile_type, pos_x, pos_y, block_player, block_bullets, damage_player, main):
+        super().__init__(main.tiles_group, main.all_sprites)
+        self.image = main.tile_images[tile_type]
+        self.rect = self.image.get_rect().move(main.tile_width * pos_x, main.tile_height * pos_y)
         self.block_player = block_player
         self.block_bullets = block_bullets
         self.damage_player = damage_player
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, room, pos_x, pos_y, image, shooting_image, direction):
-        super().__init__(enemy_group, all_sprites)
+    def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, main):
+        super().__init__(main.enemy_group, main.all_sprites)
+        self.main = main
         self.hp = 50
         self.room = room
         self.map = Map
@@ -392,7 +539,7 @@ class Enemy(pygame.sprite.Sprite):
                                 2: Image.open(shooting_image + "down.gif"),
                                 3: Image.open(shooting_image + "left.gif")}
         self.change_image(self.images, direction)
-        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+        self.rect = self.image.get_rect().move(self.main.tile_width * pos_x, self.main.tile_height * pos_y)
 
     def change_direction(self, direction):
         if direction != self.direction:
@@ -434,23 +581,23 @@ class Enemy(pygame.sprite.Sprite):
 
     def shoot(self, direction):
         self.change_image(self.shooting_images, direction)
-        if self.count % shooting_tick_delay == 0:
-            Bullet(self.rect.x + player_size_x // 2 - 5,
-                   self.rect.y + player_size_y // 2 - 5,
-                   "Images/tear_", direction, 5, player_group)
+        if self.count % self.main.shooting_tick_delay == 0:
+            Bullet(self.rect.x + self.main.player_size_x // 2 - 5,
+                   self.rect.y + self.main.player_size_y // 2 - 5,
+                   "Images/tear_", direction, 5, self.main.player_group, self.main)
         self.count += 1
 
     def check_player_coords(self):
-        if player.rect.x - 10 <= self.rect.x <= player.rect.x + 10 and player.rect.y <= self.rect.y:
+        if self.main.player.rect.x - 10 <= self.rect.x <= self.main.player.rect.x + 10 and self.main.player.rect.y <= self.rect.y:
             self.play()
             self.shoot(0)
-        elif player.rect.x - 10 <= self.rect.x <= player.rect.x + 10 and player.rect.y >= self.rect.y:
+        elif self.main.player.rect.x - 10 <= self.rect.x <= self.main.player.rect.x + 10 and self.main.player.rect.y >= self.rect.y:
             self.play()
             self.shoot(2)
-        elif player.rect.y - player_size_y <= self.rect.y <= player.rect.y + player_size_x and player.rect.x <= self.rect.x:
+        elif self.main.player.rect.y - self.main.player_size_y <= self.rect.y <= self.main.player.rect.y + self.main.player_size_x and self.main.player.rect.x <= self.rect.x:
             self.play()
             self.shoot(3)
-        elif player.rect.y - player_size_y <= self.rect.y <= player.rect.y + player_size_x and player.rect.x >= self.rect.x:
+        elif self.main.player.rect.y - self.main.player_size_y <= self.rect.y <= self.main.player.rect.y + self.main.player_size_x and self.main.player.rect.x >= self.rect.x:
             self.play()
             self.shoot(1)
         else:
@@ -458,21 +605,22 @@ class Enemy(pygame.sprite.Sprite):
             self.change_image(self.images, -1)
 
     def check_collision(self):
-        if pygame.sprite.spritecollideany(self, bullet_group, False):
-            if pygame.sprite.spritecollideany(self, bullet_group,
-                                              False).sprites_to_damage == enemy_group:
-                self.hp -= player.attack()
-                if self.hp - player.attack() <= 0:
+        if pygame.sprite.spritecollideany(self, self.main.bullet_group, False):
+            if pygame.sprite.spritecollideany(self, self.main.bullet_group,
+                                              False).sprites_to_damage == self.main.enemy_group:
+                self.hp -= self.main.player.attack()
+                if self.hp - self.main.player.attack() <= 0:
                     self.kill()
                 print('Ouch!', self.hp)
-        if pygame.sprite.spritecollideany(self, player_group, False):
+        if pygame.sprite.spritecollideany(self, self.main.player_group, False):
             print('Go away!')
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, room, pos_x, pos_y, image, shooting_image, direction,
+    def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, main,
                  parameters=None):
-        super().__init__(player_group, all_sprites)
+        super().__init__(main.player_group, main.all_sprites)
+        self.main = main
         self.room = room
         self.map = Map
         if parameters is None:
@@ -490,7 +638,7 @@ class Player(pygame.sprite.Sprite):
                                 2: Image.open(shooting_image + "down.gif"),
                                 3: Image.open(shooting_image + "left.gif")}
         self.change_image(self.images, direction)
-        self.rect = self.image.get_rect().move(tile_width * pos_x, tile_height * pos_y)
+        self.rect = self.image.get_rect().move(self.main.tile_width * pos_x, self.main.tile_height * pos_y)
 
     def render(self):
         if self.running:
@@ -531,13 +679,12 @@ class Player(pygame.sprite.Sprite):
             self.change_image(self.images, direction)
 
     def check_collision(self):
-        if pygame.sprite.spritecollideany(self, bullet_group, False):
-            if pygame.sprite.spritecollideany(self, bullet_group,
-                                              False).sprites_to_damage == player_group:
+        if pygame.sprite.spritecollideany(self, self.main.bullet_group, False):
+            if pygame.sprite.spritecollideany(self, self.main.bullet_group,
+                                              False).sprites_to_damage == self.main.player_group:
                 self.player_parameters[5] -= 1
                 if self.player_parameters[5] == 0:
-                    self.kill()
-                    start_screen()
+                    self.main.reset()
                 print('Ouch!', self.player_parameters[5])
 
     def move(self, direction):
@@ -546,47 +693,48 @@ class Player(pygame.sprite.Sprite):
         player_speed = self.player_parameters[0]
         if direction == 0:
             collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - player_speed),
-                                              (player_size_x, player_size_y))
+                                              (self.main.player_size_x, self.main.player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
-                     tiles_group]) == -1:
+                     self.main.tiles_group]) == -1:
                 self.rect.y -= player_speed
         if direction == 2:
             collision_test_rect = pygame.Rect((self.rect.x, self.rect.y + player_speed),
-                                              (player_size_x, player_size_y))
+                                              (self.main.player_size_x, self.main.player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
-                     tiles_group]) == -1:
+                     self.main.tiles_group]) == -1:
                 self.rect.y += player_speed
         if direction == 3:
             collision_test_rect = pygame.Rect((self.rect.x - player_speed, self.rect.y),
-                                              (player_size_x, player_size_y))
+                                              (self.main.player_size_x, self.main.player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
-                     tiles_group]) == -1:
+                     self.main.tiles_group]) == -1:
                 self.rect.x -= player_speed
         if direction == 1:
             collision_test_rect = pygame.Rect((self.rect.x + player_speed, self.rect.y),
-                                              (player_size_x, player_size_y))
+                                              (self.main.player_size_x, self.main.player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
-                     tiles_group]) == -1:
+                     self.main.tiles_group]) == -1:
                 self.rect.x += player_speed
 
     def shoot(self, direction):
         # TODO: анимация стрельбы
         self.change_image(self.shooting_images, direction)
-        Bullet(self.rect.x + player_size_x // 2 - 5,
-               self.rect.y + player_size_y // 2 - 5,
-               "Images/bottle_", direction, player.player_parameters[3], enemy_group)
+        Bullet(self.rect.x + self.main.player_size_x // 2 - 5,
+               self.rect.y + self.main.player_size_y // 2 - 5,
+               "Images/bottle_", direction, self.main.player.player_parameters[3], self.main.enemy_group, self.main)
 
     def attack(self):
         return self.player_parameters[1] * self.player_parameters[2]
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, image, direction, bullet_speed, sprites_to_damage):
-        super().__init__(bullet_group, all_sprites)
+    def __init__(self, x, y, image, direction, bullet_speed, sprites_to_damage, main):
+        super().__init__(main.bullet_group, main.all_sprites)
+        self.main = main
         self.direction = direction
         self.bullet_speed = bullet_speed
         self.images = {0: Image.open(image + "up.gif"),
@@ -606,7 +754,7 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(x, y)
         self.sprites_to_damage = sprites_to_damage
         self.walls = []
-        for elem in tiles_group:
+        for elem in self.main.tiles_group:
             if elem.block_bullets:
                 self.walls.append(elem)
 
@@ -662,145 +810,37 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class Artifact(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y):
-        super().__init__(artifact_group)
-        self.art_name = choice(list(art_parameters.keys()))
+    def __init__(self, pos_x, pos_y, main):
+        super().__init__(main.artifact_group)
+        self.main = main
+        self.art_name = choice(list(self.main.art_parameters.keys()))
         self.pos_x = pos_x
         self.pos_y = pos_y
-        self.parameters = art_parameters[self.art_name][1]
-        self.image = art_parameters[self.art_name][0]
-        self.rect = self.image.get_rect().move(tile_width * pos_x + 10, tile_height * pos_y + 10)
+        self.parameters = self.main.art_parameters[self.art_name][1]
+        self.image = self.main.art_parameters[self.art_name][0]
+        self.rect = self.image.get_rect().move(self.main.tile_width * pos_x + 10, self.main.tile_height * pos_y + 10)
 
     def check_collision(self):
-        if pygame.sprite.spritecollide(self, player_group, False):
-            print(player.player_parameters)
+        if pygame.sprite.spritecollide(self, self.main.player_group, False):
+            print(self.main.player.player_parameters)
             for i in (0, 4, 3):
-                if player.player_parameters[i] + int(
-                        self.parameters[i] * player.player_parameters[i]) > 1:
-                    player.player_parameters[i] += int(
-                        self.parameters[i] * player.player_parameters[i])
+                if self.main.player.player_parameters[i] + int(
+                        self.parameters[i] * self.main.player.player_parameters[i]) > 1:
+                    self.main.player.player_parameters[i] += int(
+                        self.parameters[i] * self.main.player.player_parameters[i])
                 else:
-                    player.player_parameters[i] = 1
-            player.player_parameters[2] += self.parameters[2] * player.player_parameters[2] * \
-                                           player.player_parameters[1]
-            if self.parameters[1] > player.player_parameters[1]:
-                player.player_parameters[1] = self.parameters[1]
-            player.player_parameters[5] += self.parameters[5]
+                    self.main.player.player_parameters[i] = 1
+            self.main.player.player_parameters[2] += self.parameters[2] * self.main.player.player_parameters[2] * \
+                                                     self.main.player.player_parameters[1]
+            if self.parameters[1] > self.main.player.player_parameters[1]:
+                self.main.player.player_parameters[1] = self.parameters[1]
+            self.main.player.player_parameters[5] += self.parameters[5]
             self.kill()
-            print(player.player_parameters)
-        if pygame.sprite.spritecollide(self, bullet_group, False):
+            print(self.main.player.player_parameters)
+        if pygame.sprite.spritecollide(self, self.main.bullet_group, False):
             print('Ouch!')
 
 
-cell_size, player_size_x, player_size_y = 50, 50, 50
+app = Main()
 
-all_sprites, tiles_group, artifact_group = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
-player_group, bullet_group, enemy_group = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
-
-tile_images = {'wall': pygame.transform.scale(load_image('wall.png'), (cell_size, cell_size)),
-               'empty': pygame.transform.scale(load_image('floor.png'), (cell_size, cell_size)),
-               'door_up': pygame.transform.scale(load_image('door.png'), (cell_size, cell_size)),
-               'door_right': pygame.transform.rotate(load_image('door.png'), 270),
-               'door_down': pygame.transform.rotate(load_image('door.png'), 180),
-               'door_left': pygame.transform.rotate(load_image('door.png'), 90),
-               'door_up_closed': pygame.transform.scale(load_image('door_closed.png'),
-                                                        (cell_size, cell_size)),
-               'door_right_closed': pygame.transform.rotate(load_image('door_closed.png'), 270),
-               'door_down_closed': pygame.transform.rotate(load_image('door_closed.png'), 180),
-               'door_left_closed': pygame.transform.rotate(load_image('door_closed.png'), 90),
-               'hole': pygame.transform.scale(load_image('hole.png'), (cell_size, cell_size)),
-               'rock': pygame.transform.scale(load_image('rock.png', -1), (cell_size, cell_size))}
-tile_width, tile_height = 50, 50
-
-room_types = ["circle", "circle_in_square", "death_road", "diagonal", "lines", "mexico",
-              "square_trap", "trapezoid", "shop", "artifact_room", "boss_room"]
-special_rooms = ["shop", "artifact_room", "boss_room"]
-
-# player, level_x, level_y = generate_level(load_level('map.txt'))
-game_map = Map(11)
-room = game_map.get_current_room()
-room.get_level(0)
-player = room.player
-game_map.update_doors()
-time_left = 0
-shooting_tick_delay = 10
-counter = 0
-running = True
-
-start_screen()
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            counter = 0
-        if event.type == pygame.KEYUP:
-            player.cur = 0
-            player.change_image(player.images, player.direction)
-            player.change_direction(-1)
-    elem = pygame.key.get_pressed()
-
-    if elem[pygame.K_ESCAPE] == 1:
-        running = False
-    if elem[pygame.K_w] == 1:
-        player.move(0)
-    if elem[pygame.K_s] == 1:
-        player.move(2)
-    if elem[pygame.K_a] == 1:
-        player.move(3)
-    if elem[pygame.K_d] == 1:
-        player.move(1)
-    if elem[pygame.K_UP]:
-        player.play()
-        if counter % player.player_parameters[4] == 0:
-            player.shoot(0)
-    elif elem[pygame.K_RIGHT]:
-        player.play()
-        if counter % player.player_parameters[4] == 0:
-            player.shoot(1)
-    elif elem[pygame.K_DOWN]:
-        player.play()
-        if counter % player.player_parameters[4] == 0:
-            player.shoot(2)
-    elif elem[pygame.K_LEFT]:
-        player.play()
-        if counter % player.player_parameters[4] == 0:
-            player.shoot(3)
-
-    screen.fill((0, 0, 0))
-    tiles_group.draw(screen)
-    enemy_group.draw(screen)
-    artifact_group.draw(screen)
-    bullet_group.draw(screen)
-    player_group.draw(screen)
-
-    for elem in bullet_group:
-        elem.render()
-        elem.move()
-
-    for elem in player_group:
-        elem.check_collision()
-
-    for elem in artifact_group:
-        elem.check_collision()
-
-    for elem in enemy_group:
-        elem.check_player_coords()
-        elem.check_collision()
-
-    door = game_map.check_door()
-    if door[0]:
-        all_sprites, tiles_group, artifact_group = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
-        player_group, bullet_group = pygame.sprite.Group(), pygame.sprite.Group()
-        room = game_map.get_current_room()
-        room.get_level(door[1])
-        player = room.player
-        game_map.update_doors()
-
-    for elem in bullet_group:
-        elem.render()
-    player.render()
-    pygame.display.flip()
-    clock.tick(FPS)
-    counter += 1
 pygame.quit()
