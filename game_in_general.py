@@ -100,7 +100,8 @@ def get_frames(obj):
 
 
 class Button(pygame.sprite.Sprite):
-    def __init__(self, screen, menu_button_group, x, y, image, selected_image, selected, clicked_func):
+    def __init__(self, screen, menu_button_group, x, y, image, selected_image, selected,
+                 clicked_func):
         super().__init__(menu_button_group)
         self.not_selected_image = load_image(image)
         self.selected_image = load_image(selected_image)
@@ -124,24 +125,27 @@ class Main:
         self.size = self.WIDTH, self.HEIGHT = 850, 650
         self.screen = pygame.display.set_mode(self.size)
         self.clock = pygame.time.Clock()
-        self.player_image_file = 'Images/Cop_'
-        self.player_shoot_file = 'Images/Cop_shoot_'
+        self.player_image_file = 'Images/Red_'
+        self.player_shoot_file = 'Images/Red_run_'
         self.cell_size, self.player_size_x, self.player_size_y = 50, 50, 50
 
-        self.tile_images = {'wall': pygame.transform.scale(load_image('wall.png'), (self.cell_size, self.cell_size)),
-                            'empty': pygame.transform.scale(load_image('floor.png'), (self.cell_size, self.cell_size)),
-                            'door_up': pygame.transform.scale(load_image('door.png'), (self.cell_size, self.cell_size)),
-                            'door_right': pygame.transform.rotate(load_image('door.png'), 270),
-                            'door_down': pygame.transform.rotate(load_image('door.png'), 180),
-                            'door_left': pygame.transform.rotate(load_image('door.png'), 90),
-                            'door_up_closed': pygame.transform.scale(load_image('door_closed.png'),
-                                                                     (self.cell_size, self.cell_size)),
-                            'door_right_closed': pygame.transform.rotate(load_image('door_closed.png'), 270),
-                            'door_down_closed': pygame.transform.rotate(load_image('door_closed.png'), 180),
-                            'door_left_closed': pygame.transform.rotate(load_image('door_closed.png'), 90),
-                            'hole': pygame.transform.scale(load_image('hole.png'), (self.cell_size, self.cell_size)),
-                            'rock': pygame.transform.scale(load_image('rock.png', -1),
-                                                           (self.cell_size, self.cell_size))}
+        self.tile_images = {
+            'wall': pygame.transform.scale(load_image('wall.png'), (self.cell_size, self.cell_size)),
+            'empty': pygame.transform.scale(load_image('floor.png'),
+                                            (self.cell_size, self.cell_size)),
+            'door_up': pygame.transform.scale(load_image('door.png'),
+                                              (self.cell_size, self.cell_size)),
+            'door_right': pygame.transform.rotate(load_image('door.png'), 270),
+            'door_down': pygame.transform.rotate(load_image('door.png'), 180),
+            'door_left': pygame.transform.rotate(load_image('door.png'), 90),
+            'door_up_closed': pygame.transform.scale(load_image('door_closed.png'),
+                                                     (self.cell_size, self.cell_size)),
+            'door_right_closed': pygame.transform.rotate(load_image('door_closed.png'), 270),
+            'door_down_closed': pygame.transform.rotate(load_image('door_closed.png'), 180),
+            'door_left_closed': pygame.transform.rotate(load_image('door_closed.png'), 90),
+            'hole': pygame.transform.scale(load_image('hole.png'), (self.cell_size, self.cell_size)),
+            'rock': pygame.transform.scale(load_image('rock.png', -1),
+                                           (self.cell_size, self.cell_size))}
         self.tile_width, self.tile_height = 50, 50
 
         self.room_types = ["circle", "circle_in_square", "death_road", "diagonal", "lines", "mexico",
@@ -150,19 +154,26 @@ class Main:
 
         # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
         self.art_parameters = {'meat': (load_image('art_meat.png', -1), (0, 0, 1, 0, 0, 1, False)),
-                               'sandwich': (load_image('art_sandwich.png', -1), (0, 0, 0, 0, 0, 1, False)),
-                               'breakfast': (load_image('art_breakfast.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                               'sandwich': (
+                                   load_image('art_sandwich.png', -1), (0, 0, 0, 0, 0, 1, False)),
+                               'breakfast': (
+                                   load_image('art_breakfast.png', -1), (0, 0, 0, 0, 0, 1, False)),
                                'soup': (load_image('art_soup.png', -1), (0, 0, 0, 0, 0, 1, False)),
                                'onion': (load_image('art_onion.png', -1), (0, 0, 0, 0.7, 0, False)),
-                               'screw': (load_image('art_screw.png', -1), (0, 0, 0, 0.3, -0.2, False)),
-                               'amulet': (load_image('art_amulet.png', -1), (0, 0, 1, 0, 0, 0, False)),
-                               'kosuha': (load_image('art_kosuha.png', -1), (-0.2, 0, 0, 0, 0, 0, True)),
-                               'dead_cat': (load_image('art_dead_cat.png', -1), (0, 1.5, 1, 0, 0, 0, True)),
+                               'screw': (
+                                   load_image('art_screw.png', -1), (0, 0, 0, 0.3, -0.2, False)),
+                               'amulet': (
+                                   load_image('art_amulet.png', -1), (0, 0, 1, 0, 0, 0, False)),
+                               'dead_cat': (
+                                   load_image('art_dead_cat.png', -1), (0, 1.5, 1, 0, 0, 0, True)),
                                'mineral_water': (
-                                   load_image('art_mineral_water.png', -1), (0, 0, 0.5, 0, 0, 0, False)),
+                                   load_image('art_mineral_water.png', -1),
+                                   (0, 0, 0.5, 0, 0, 0, False)),
                                'good_morning': (
-                                   load_image('art_good_morning.png', -1), (0, 0, 0.5, 0, -0.7, 1, False)),
-                               'eye': (load_image('art_eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
+                                   load_image('art_good_morning.png', -1),
+                                   (0, 0, 0.5, 0, -0.7, 1, False)),
+                               'eye': (
+                                   load_image('art_eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
 
         self.player_parameters = [5, 1, 3.5, 5, 21, 6]
 
@@ -193,25 +204,27 @@ class Main:
 
     def menu(self):
         self.buttons_group = pygame.sprite.Group()
-        intro_text = ["УРОВНИ", "", "Выберите уровни"]
         fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
         self.screen.blit(fon, (0, 0))
         font = pygame.font.Font(None, 30)
         text_coord = 50
 
-        button_start = Button(self.screen, self.buttons_group, 250, 100, "Start_button.png", "Start_button.png", False,
+        button_start = Button(self.screen, self.buttons_group, 250, 100, "Start_button.png",
+                              "Start_button.png", False,
                               self.start_game)
         button_settings = Button(self.screen, self.buttons_group, 250, 200, "Setting_button.png",
                                  "Setting_button.png", False, None)
+        button_authors = Button(self.screen, self.buttons_group, 250, 300, "Autors_button.png",
+                                "Autors_button.png", False, self.autors_show)
 
-        for line in intro_text:
-            string_rendered = font.render(line, 1, pygame.Color('black'))
-            intro_rect = string_rendered.get_rect()
-            text_coord += 10
-            intro_rect.top = text_coord
-            intro_rect.x = 10
-            text_coord += intro_rect.height
-            self.screen.blit(string_rendered, intro_rect)
+        # for line in intro_text:
+        #    string_rendered = font.render(line, 1, pygame.Color('black'))
+        #    intro_rect = string_rendered.get_rect()
+        #    text_coord += 10
+        #    intro_rect.top = text_coord
+        #    intro_rect.x = 10
+        #    text_coord += intro_rect.height
+        #    self.screen.blit(string_rendered, intro_rect)
 
         while True:
             for event in pygame.event.get():
@@ -231,6 +244,19 @@ class Main:
         self.load_room(0)
         self.main_cycle()
 
+    def autors_show(self):
+        fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
+        text = "Урвачев Роман и Зотова Екатерина"
+        for b in self.buttons_group:
+            b.kill()
+        self.screen.blit(fon, (0, 0))
+        font = pygame.font.Font(None, 30)
+        text_rendered = font.render(text, 1, pygame.Color('black'))
+        self.screen.blit(text_rendered, (250, 100))
+        button_start = Button(self.screen, self.buttons_group, 250, 200, "Start_button.png",
+                              "Start_button.png", False,
+                              self.start_game)
+
     def game_over(self):
         self.buttons_group = pygame.sprite.Group()
         text = "Гамовер"
@@ -240,7 +266,8 @@ class Main:
         text_rendered = font.render(text, 1, pygame.Color('black'))
         self.screen.blit(text_rendered, (250, 100))
 
-        button_start = Button(self.screen, self.buttons_group, 250, 200, "Start_button.png", "Start_button.png", False,
+        button_start = Button(self.screen, self.buttons_group, 250, 200, "Start_button.png",
+                              "Start_button.png", False,
                               self.start_game)
 
         while True:
@@ -277,6 +304,8 @@ class Main:
 
             if keys[pygame.K_ESCAPE] == 1:
                 return
+            if keys[pygame.K_r] == 1:
+                self.start_game()
             if keys[pygame.K_w] == 1:
                 self.player.move(0)
             if keys[pygame.K_s] == 1:
@@ -376,12 +405,14 @@ class Room:
                     Tile('wall', x, y, True, True, False, self.main)
                 elif level[y][x] == '@':
                     if self.filename == "start":
-                        new_player = Player(self, x, y, self.main.player_image_file, self.main.player_shoot_file, -1,
+                        new_player = Player(self, x, y, self.main.player_image_file,
+                                            self.main.player_shoot_file, -1,
                                             self.main, self.main.player_parameters)
                     Tile('empty', x, y, False, False, False, self.main)
                 elif level[y][x] == 'E':
                     self.enemies.append(
-                        Enemy(self, x, y, self.main.player_image_file, self.main.player_shoot_file, -1, self.main))
+                        Enemy(self, x, y, self.main.player_image_file, self.main.player_shoot_file,
+                              -1, self.main))
                     Tile('empty', x, y, False, False, False, self.main)
                 if level[y][x] == 'R':
                     Tile('rock', x, y, True, True, False, self.main)
@@ -393,22 +424,26 @@ class Room:
                 elif level[y][x] == '^':
                     self.door_up = Tile('door_up', x, y, False, True, False, self.main)
                     if player_direction == 0 and self.filename != "start":
-                        new_player = Player(self, x, y + 1, self.main.player_image_file, self.main.player_shoot_file,
+                        new_player = Player(self, x, y + 1, self.main.player_image_file,
+                                            self.main.player_shoot_file,
                                             -1, self.main, self.main.player_parameters)
                 elif level[y][x] == '>':
                     self.door_right = Tile('door_right', x, y, False, True, False, self.main)
                     if player_direction == 1 and self.filename != "start":
-                        new_player = Player(self, x - 1, y, self.main.player_image_file, self.main.player_shoot_file,
+                        new_player = Player(self, x - 1, y, self.main.player_image_file,
+                                            self.main.player_shoot_file,
                                             -1, self.main, self.main.player_parameters)
                 elif level[y][x] == 'v':
                     self.door_down = Tile('door_down', x, y, False, True, False, self.main)
                     if player_direction == 2 and self.filename != "start":
-                        new_player = Player(self, x, y - 1, self.main.player_image_file, self.main.player_shoot_file,
+                        new_player = Player(self, x, y - 1, self.main.player_image_file,
+                                            self.main.player_shoot_file,
                                             -1, self.main, self.main.player_parameters)
                 elif level[y][x] == '<':
                     self.door_left = Tile('door_left', x, y, False, True, False, self.main)
                     if player_direction == 3 and self.filename != "start":
-                        new_player = Player(self, x + 1, y, self.main.player_image_file, self.main.player_shoot_file,
+                        new_player = Player(self, x + 1, y, self.main.player_image_file,
+                                            self.main.player_shoot_file,
                                             -1, self.main, self.main.player_parameters)
 
         return new_player, x, y
@@ -521,7 +556,8 @@ class Map:
 
                 if i != self.rooms_count - 1:
                     room = Room(choice(self.main.room_types), self.main)
-                    while (direction + 2) % 4 not in room.exits or not self.room_check_neighbours(room, x, y):
+                    while (direction + 2) % 4 not in room.exits or not self.room_check_neighbours(
+                            room, x, y):
                         room = Room(choice(self.main.room_types), self.main)
 
                     self.map[y][x] = room
@@ -529,6 +565,15 @@ class Map:
                 else:
                     if direction in special_rooms_directions:
                         self.map[y][x] = Room(special_rooms_directions[direction], self.main)
+
+            for elem in self.map:
+                for elem1 in elem:
+                    if elem1:
+                        print(elem1.filename[0:2], end=" ")
+                    else:
+                        print("  ", end=" ")
+                print()
+            print()
 
     def room_check_neighbours(self, room, x, y):
         for elem in room.exits:
@@ -627,7 +672,6 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, main):
         super().__init__(main.enemy_group, main.all_sprites)
         self.running = None
-        self.running = None
         self.reversed = None
         self.image_gif = None
         self.frames = None
@@ -656,7 +700,8 @@ class Enemy(pygame.sprite.Sprite):
                                 2: Image.open(shooting_image + "down.gif"),
                                 3: Image.open(shooting_image + "left.gif")}
         self.change_image(self.images, direction)
-        self.rect = self.image.get_rect().move(self.main.tile_width * pos_x, self.main.tile_height * pos_y)
+        self.rect = self.image.get_rect().move(self.main.tile_width * pos_x,
+                                               self.main.tile_height * pos_y)
 
     def change_direction(self, direction):
         if direction != self.direction:
@@ -664,7 +709,6 @@ class Enemy(pygame.sprite.Sprite):
 
     def render(self):
         if self.running:
-
             if time.time() - self.ptime > self.frames[self.cur][1]:
                 if self.reversed:
                     self.cur -= 1
@@ -742,7 +786,8 @@ class Enemy(pygame.sprite.Sprite):
         if self.room.find_way(self.get_pos(self.rect.x, self.rect.y),
                               self.get_pos(self.room.player.rect.x, self.room.player.rect.y)):
             x1, y1 = self.room.find_way(self.get_pos(self.rect.x, self.rect.y),
-                                        self.get_pos(self.room.player.rect.x, self.room.player.rect.y))[-1]
+                                        self.get_pos(self.room.player.rect.x,
+                                                     self.room.player.rect.y))[-1]
             if self.rect.y < y1 * 50:
                 self.rect.y += self.speed
             elif self.rect.y > y1 * 50:
@@ -785,7 +830,8 @@ class Player(pygame.sprite.Sprite):
                                 2: Image.open(shooting_image + "down.gif"),
                                 3: Image.open(shooting_image + "left.gif")}
         self.change_image(self.images, direction)
-        self.rect = self.image.get_rect().move(self.main.tile_width * pos_x, self.main.tile_height * pos_y)
+        self.rect = self.image.get_rect().move(self.main.tile_width * pos_x,
+                                               self.main.tile_height * pos_y)
 
     def render(self):
         if self.running:
@@ -871,7 +917,8 @@ class Player(pygame.sprite.Sprite):
         self.change_image(self.shooting_images, direction)
         Bullet(self.rect.x + self.main.player_size_x // 2 - 5,
                self.rect.y + self.main.player_size_y // 2 - 5,
-               "Images/bottle_", direction, self.main.player.player_parameters[3], self.main.enemy_group, self.main)
+               "Images/bottle_", direction, self.main.player.player_parameters[3],
+               self.main.enemy_group, self.main)
 
     def attack(self):
         return self.player_parameters[1] * self.player_parameters[2]
@@ -971,7 +1018,8 @@ class Artifact(pygame.sprite.Sprite):
         self.pos_y = pos_y
         self.parameters = self.main.art_parameters[self.art_name][1]
         self.image = self.main.art_parameters[self.art_name][0]
-        self.rect = self.image.get_rect().move(self.main.tile_width * pos_x + 10, self.main.tile_height * pos_y + 10)
+        self.rect = self.image.get_rect().move(self.main.tile_width * pos_x + 10,
+                                               self.main.tile_height * pos_y + 10)
 
     def check_collision(self):
         if pygame.sprite.spritecollide(self, self.main.player_group, False):
@@ -983,8 +1031,9 @@ class Artifact(pygame.sprite.Sprite):
                         self.parameters[i] * self.main.player.player_parameters[i])
                 else:
                     self.main.player.player_parameters[i] = 1
-            self.main.player.player_parameters[2] += (self.parameters[2] * self.main.player.player_parameters[2] *
-                                                      self.main.player.player_parameters[1])
+            self.main.player.player_parameters[2] += (
+                    self.parameters[2] * self.main.player.player_parameters[2] *
+                    self.main.player.player_parameters[1])
             if self.parameters[1] > self.main.player.player_parameters[1]:
                 self.main.player.player_parameters[1] = self.parameters[1]
             self.main.player.player_parameters[5] += self.parameters[5]
