@@ -99,6 +99,26 @@ def get_frames(obj):
         pass
 
 
+class Button(pygame.sprite.Sprite):
+    def __init__(self, screen, menu_button_group, x, y, image, selected_image, selected, clicked_func):
+        super().__init__(menu_button_group)
+        self.not_selected_image = load_image(image)
+        self.selected_image = load_image(selected_image)
+        self.selected = selected
+        if self.selected:
+            self.image = self.selected_image
+        else:
+            self.image = self.not_selected_image
+
+        self.clicked_func = clicked_func
+        self.rect = self.image.get_rect().move(x, y)
+
+    def check_click(self, pos):
+        if self.rect.collidepoint(pos):
+            if self.clicked_func:
+                self.clicked_func()
+
+
 class Main:
     def __init__(self):
         self.size = self.WIDTH, self.HEIGHT = 850, 650
@@ -144,31 +164,46 @@ class Main:
                                    load_image('art_good_morning.png', -1), (0, 0, 0.5, 0, -0.7, 1, False)),
                                'eye': (load_image('art_eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
 
+        self.player_parameters = [5, 1, 3.5, 5, 21, 6]
+
         self.counter = 0
         self.shooting_tick_delay = 10
 
-        self.start_screen()
-        self.load_map(5)
-        self.load_room(0)
-        self.main_cycle()
+        self.all_sprites, self.tiles_group, self.artifact_group = None, None, None
+        self.player_group, self.bullet_group, self.enemy_group = None, None, None
+        self.buttons_group = None
+        self.game_map = None
+        self.player = None
+        self.room = None
+
+        self.menu()
 
     def load_map(self, rooms_count):
         self.game_map = Map(rooms_count, self)
 
     def load_room(self, direction):
-        self.all_sprites, self.tiles_group, self.artifact_group = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
-        self.player_group, self.bullet_group, self.enemy_group = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
+        print(self.player_parameters)
+        self.all_sprites, self.tiles_group = pygame.sprite.Group(), pygame.sprite.Group()
+        self.artifact_group, self.player_group = pygame.sprite.Group(), pygame.sprite.Group()
+        self.bullet_group, self.enemy_group = pygame.sprite.Group(), pygame.sprite.Group()
         self.room = self.game_map.get_current_room()
         self.room.get_level(direction)
         self.player = self.room.player
         self.game_map.update_doors()
 
-    def start_screen(self):
+    def menu(self):
+        self.buttons_group = pygame.sprite.Group()
         intro_text = ["УРОВНИ", "", "Выберите уровни"]
-        fon = pygame.transform.scale(load_image('fon.png'), (self.WIDTH, self.HEIGHT))
+        fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
         self.screen.blit(fon, (0, 0))
         font = pygame.font.Font(None, 30)
         text_coord = 50
+
+        button_start = Button(self.screen, self.buttons_group, 250, 100, "Start_button.png", "Start_button.png", False,
+                              self.start_game)
+        button_settings = Button(self.screen, self.buttons_group, 250, 200, "Setting_button.png",
+                                 "Setting_button.png", False, None)
+
         for line in intro_text:
             string_rendered = font.render(line, 1, pygame.Color('black'))
             intro_rect = string_rendered.get_rect()
@@ -182,8 +217,41 @@ class Main:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.terminate()
-                elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                    return
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    for elem in self.buttons_group:
+                        elem.check_click(event.pos)
+
+            self.buttons_group.draw(self.screen)
+            pygame.display.flip()
+            self.clock.tick(FPS)
+
+    def start_game(self):
+        self.player_parameters = [5, 1, 3.5, 5, 21, 6]
+        self.load_map(5)
+        self.load_room(0)
+        self.main_cycle()
+
+    def game_over(self):
+        self.buttons_group = pygame.sprite.Group()
+        text = "Гамовер"
+        fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
+        self.screen.blit(fon, (0, 0))
+        font = pygame.font.Font(None, 100)
+        text_rendered = font.render(text, 1, pygame.Color('black'))
+        self.screen.blit(text_rendered, (250, 100))
+
+        button_start = Button(self.screen, self.buttons_group, 250, 200, "Start_button.png", "Start_button.png", False,
+                              self.start_game)
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.terminate()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    for elem in self.buttons_group:
+                        elem.check_click(event.pos)
+
+            self.buttons_group.draw(self.screen)
             pygame.display.flip()
             self.clock.tick(FPS)
 
@@ -208,7 +276,7 @@ class Main:
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_ESCAPE] == 1:
-                self.running = False
+                return
             if keys[pygame.K_w] == 1:
                 self.player.move(0)
             if keys[pygame.K_s] == 1:
@@ -218,19 +286,15 @@ class Main:
             if keys[pygame.K_d] == 1:
                 self.player.move(1)
             if keys[pygame.K_UP]:
-                self.player.play()
                 if self.counter % self.player.player_parameters[4] == 0:
                     self.player.shoot(0)
             elif keys[pygame.K_RIGHT]:
-                self.player.play()
                 if self.counter % self.player.player_parameters[4] == 0:
                     self.player.shoot(1)
             elif keys[pygame.K_DOWN]:
-                self.player.play()
                 if self.counter % self.player.player_parameters[4] == 0:
                     self.player.shoot(2)
             elif keys[pygame.K_LEFT]:
-                self.player.play()
                 if self.counter % self.player.player_parameters[4] == 0:
                     self.player.shoot(3)
 
@@ -246,12 +310,15 @@ class Main:
                 elem.move()
 
             for elem in self.player_group:
+                elem.render()
                 elem.check_collision()
 
             for elem in self.artifact_group:
                 elem.check_collision()
 
             for elem in self.enemy_group:
+                elem.move()
+                elem.render()
                 elem.check_player_coords()
                 elem.check_collision()
 
@@ -271,7 +338,7 @@ class Main:
 class Room:
     def __init__(self, filename, main):
         self.main = main
-        self.filename, self.exits, self.enemies = filename, [], []
+        self.filename, self.exits, self.enemies, self.room_map = filename, [], [], []
         self.door_up, self.door_right, self.door_down, self.door_left = None, None, None, None
         self.load_level(self.filename + ".txt")
         self.player, self.width, self.height = None, None, None
@@ -293,6 +360,10 @@ class Room:
         max_width = max(map(len, level_map))
 
         # дополняем каждую строку пустыми клетками ('.')
+        for elem in list(map(lambda x: x.ljust(max_width, '.'), level_map)):
+            self.room_map.append(
+                list(map(lambda x: 0 if x in ["#", "0", "^", "<", ">", "v", "R"] else -1, elem)))
+
         return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
     def generate_level(self, level, player_direction):
@@ -306,7 +377,7 @@ class Room:
                 elif level[y][x] == '@':
                     if self.filename == "start":
                         new_player = Player(self, x, y, self.main.player_image_file, self.main.player_shoot_file, -1,
-                                            self.main)
+                                            self.main, self.main.player_parameters)
                     Tile('empty', x, y, False, False, False, self.main)
                 elif level[y][x] == 'E':
                     self.enemies.append(
@@ -323,24 +394,76 @@ class Room:
                     self.door_up = Tile('door_up', x, y, False, True, False, self.main)
                     if player_direction == 0 and self.filename != "start":
                         new_player = Player(self, x, y + 1, self.main.player_image_file, self.main.player_shoot_file,
-                                            -1, self.main)
+                                            -1, self.main, self.main.player_parameters)
                 elif level[y][x] == '>':
                     self.door_right = Tile('door_right', x, y, False, True, False, self.main)
                     if player_direction == 1 and self.filename != "start":
                         new_player = Player(self, x - 1, y, self.main.player_image_file, self.main.player_shoot_file,
-                                            -1, self.main)
+                                            -1, self.main, self.main.player_parameters)
                 elif level[y][x] == 'v':
                     self.door_down = Tile('door_down', x, y, False, True, False, self.main)
                     if player_direction == 2 and self.filename != "start":
                         new_player = Player(self, x, y - 1, self.main.player_image_file, self.main.player_shoot_file,
-                                            -1, self.main)
+                                            -1, self.main, self.main.player_parameters)
                 elif level[y][x] == '<':
                     self.door_left = Tile('door_left', x, y, False, True, False, self.main)
                     if player_direction == 3 and self.filename != "start":
                         new_player = Player(self, x + 1, y, self.main.player_image_file, self.main.player_shoot_file,
-                                            -1, self.main)
+                                            -1, self.main, self.main.player_parameters)
 
         return new_player, x, y
+
+    def find_way(self, coords1, coords2):
+        x1, y1 = coords1
+        x2, y2 = coords2
+        delta_x = [1, 0, -1, 0]
+        delta_y = [0, 1, 0, -1]
+
+        test_board = []
+        height = len(self.room_map)
+        width = len(self.room_map[0])
+        for y in range(height):
+            test_board.append([])
+            for x in range(width):
+                if self.room_map[y][x] == 0:
+                    test_board[y].append(-1)
+                else:
+                    test_board[y].append(-2)
+
+        counter = 0
+        test_board[y1][x1] = 0
+        while True:
+            stop = True
+            for y in range(height):
+                for x in range(width):
+                    if test_board[y][x] == counter:
+                        for i in range(4):
+                            x3, y3 = x + delta_x[i], y + delta_y[i]
+                            if 0 <= x3 < width and 0 <= y3 < height:
+                                if test_board[y3][x3] == -2:
+                                    stop = False
+                                    test_board[y3][x3] = counter + 1
+            counter += 1
+            if stop or test_board[y2][x2] != -2:
+                break
+        path = []
+        if test_board[y2][x2] == -2:
+            return []
+
+        x = x2
+        y = y2
+        counter = test_board[y2][x2]
+        while counter > 0:
+            path.append((x, y))
+            counter -= 1
+            for i in range(4):
+                x3, y3 = x + delta_x[i], y + delta_y[i]
+                if 0 <= x3 < width and 0 <= y3 < height:
+                    if test_board[y3][x3] == counter:
+                        x = x + delta_x[i]
+                        y = y + delta_y[i]
+                        break
+        return path
 
     def __repr__(self):
         return 'Room(' + self.filename + ')'
@@ -388,21 +511,12 @@ class Map:
                     direction = main_direction
                     x, y = self.get_coords((x, y), direction)
                 else:
-                    # for elem in self.map:
-                    #     for elem1 in elem:
-                    #         if elem1:
-                    #             print(elem1.filename[0:2], end=" ")
-                    #         else:
-                    #             print("00", end=" ")
-                    #     print()
-                    # print()
                     direction = choice(self.rooms[-1].exits)
                     coords = self.get_coords((x, y), direction)
                     while (self.map[coords[1]][coords[0]] is not None or
                            (direction + 2) % 4 == main_direction):
                         direction = choice(self.rooms[-1].exits)
                         coords = self.get_coords((x, y), direction)
-                        # print("dir")
                     x, y = self.get_coords((x, y), direction)
 
                 if i != self.rooms_count - 1:
@@ -415,15 +529,6 @@ class Map:
                 else:
                     if direction in special_rooms_directions:
                         self.map[y][x] = Room(special_rooms_directions[direction], self.main)
-
-            for elem in self.map:
-                for elem1 in elem:
-                    if elem1:
-                        print(elem1.filename[0:2], end=" ")
-                    else:
-                        print("00", end=" ")
-                print()
-            print()
 
     def room_check_neighbours(self, room, x, y):
         for elem in room.exits:
@@ -521,6 +626,16 @@ class Tile(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, main):
         super().__init__(main.enemy_group, main.all_sprites)
+        self.running = None
+        self.running = None
+        self.reversed = None
+        self.image_gif = None
+        self.frames = None
+        self.startpoint = None
+        self.ptime = None
+        self.cur = None
+        self.breakpoint = None
+        self.image = None
         self.main = main
         self.hp = 50
         self.room = room
@@ -529,6 +644,8 @@ class Enemy(pygame.sprite.Sprite):
         self.x = pos_x
         self.y = pos_y
         self.count = 0
+        self.speed = 2
+        self.image_gif = None
         self.images = {0: Image.open(image + "run_up.gif"),
                        1: Image.open(image + "run_right.gif"),
                        2: Image.open(image + "run_down.gif"),
@@ -547,6 +664,7 @@ class Enemy(pygame.sprite.Sprite):
 
     def render(self):
         if self.running:
+
             if time.time() - self.ptime > self.frames[self.cur][1]:
                 if self.reversed:
                     self.cur -= 1
@@ -556,7 +674,6 @@ class Enemy(pygame.sprite.Sprite):
                     self.cur += 1
                     if self.cur > self.breakpoint:
                         self.cur = self.startpoint
-
                 self.ptime = time.time()
         self.image = self.frames[self.cur][0]
 
@@ -567,17 +684,18 @@ class Enemy(pygame.sprite.Sprite):
         self.running = True
 
     def change_image(self, image_group, direction):
-        self.running = True
-        self.reversed = False
-        self.image_gif = image_group[direction]
-        self.frames = []
-        self.startpoint = 0
-        self.ptime = time.time()
-        self.cur = 0
-        get_frames(self)
-        self.breakpoint = len(self.frames) - 1
-        self.render()
-        self.direction = direction
+        if self.image_gif != image_group[direction]:
+            self.running = True
+            self.reversed = False
+            self.image_gif = image_group[direction]
+            self.frames = []
+            self.startpoint = 0
+            self.ptime = time.time()
+            self.cur = 0
+            get_frames(self)
+            self.breakpoint = len(self.frames) - 1
+            self.render()
+            self.direction = direction
 
     def shoot(self, direction):
         self.change_image(self.shooting_images, direction)
@@ -588,20 +706,25 @@ class Enemy(pygame.sprite.Sprite):
         self.count += 1
 
     def check_player_coords(self):
-        if self.main.player.rect.x - 10 <= self.rect.x <= self.main.player.rect.x + 10 and self.main.player.rect.y <= self.rect.y:
-            self.play()
+        if (self.main.player.rect.x - 10 <= self.rect.x <= self.main.player.rect.x + 10 and
+                self.main.player.rect.y <= self.rect.y):
             self.shoot(0)
-        elif self.main.player.rect.x - 10 <= self.rect.x <= self.main.player.rect.x + 10 and self.main.player.rect.y >= self.rect.y:
-            self.play()
+            return True
+        elif (self.main.player.rect.x - 10 <= self.rect.x <= self.main.player.rect.x + 10 and
+              self.main.player.rect.y >= self.rect.y):
             self.shoot(2)
-        elif self.main.player.rect.y - self.main.player_size_y <= self.rect.y <= self.main.player.rect.y + self.main.player_size_x and self.main.player.rect.x <= self.rect.x:
-            self.play()
+            return True
+        elif (self.main.player.rect.y - self.main.player_size_y
+              <= self.rect.y <= self.main.player.rect.y + self.main.player_size_x and
+              self.main.player.rect.x <= self.rect.x):
             self.shoot(3)
-        elif self.main.player.rect.y - self.main.player_size_y <= self.rect.y <= self.main.player.rect.y + self.main.player_size_x and self.main.player.rect.x >= self.rect.x:
-            self.play()
+            return True
+        elif (self.main.player.rect.y - self.main.player_size_y
+              <= self.rect.y <= self.main.player.rect.y + self.main.player_size_x and
+              self.main.player.rect.x >= self.rect.x):
             self.shoot(1)
+            return True
         else:
-            self.play()
             self.change_image(self.images, -1)
 
     def check_collision(self):
@@ -615,16 +738,40 @@ class Enemy(pygame.sprite.Sprite):
         if pygame.sprite.spritecollideany(self, self.main.player_group, False):
             print('Go away!')
 
+    def move(self):
+        if self.room.find_way(self.get_pos(self.rect.x, self.rect.y),
+                              self.get_pos(self.room.player.rect.x, self.room.player.rect.y)):
+            x1, y1 = self.room.find_way(self.get_pos(self.rect.x, self.rect.y),
+                                        self.get_pos(self.room.player.rect.x, self.room.player.rect.y))[-1]
+            if self.rect.y < y1 * 50:
+                self.rect.y += self.speed
+            elif self.rect.y > y1 * 50:
+                self.rect.y -= self.speed
+            if self.rect.x < x1 * 50:
+                self.rect.x += self.speed
+            elif self.rect.x > x1 * 50:
+                self.rect.x -= self.speed
+
+    def get_pos(self, x, y):
+        return x // 50, y // 50
+
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, main,
-                 parameters=None):
+                 parameters):
         super().__init__(main.player_group, main.all_sprites)
+        self.running = None
+        self.running = None
+        self.reversed = None
+        self.image_gif = None
+        self.frames = None
+        self.startpoint = None
+        self.ptime = None
+        self.cur = None
+        self.breakpoint = None
+        self.image = None
         self.main = main
         self.room = room
-        self.map = Map
-        if parameters is None:
-            parameters = [5, 1, 3.5, 5, 21, 6]
         self.direction = direction
         # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
         self.player_parameters = parameters
@@ -683,13 +830,12 @@ class Player(pygame.sprite.Sprite):
             if pygame.sprite.spritecollideany(self, self.main.bullet_group,
                                               False).sprites_to_damage == self.main.player_group:
                 self.player_parameters[5] -= 1
-                if self.player_parameters[5] == 0:
-                    self.main.reset()
+                if self.player_parameters[5] <= 0:
+                    self.main.game_over()
                 print('Ouch!', self.player_parameters[5])
 
     def move(self, direction):
         self.change_direction(direction)
-        self.play()
         player_speed = self.player_parameters[0]
         if direction == 0:
             collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - player_speed),
@@ -730,10 +876,17 @@ class Player(pygame.sprite.Sprite):
     def attack(self):
         return self.player_parameters[1] * self.player_parameters[2]
 
+    def show_stats(self):
+        pass
+
+    def get_pos(self, x, y):
+        return x // 50, y // 50
+
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, image, direction, bullet_speed, sprites_to_damage, main):
         super().__init__(main.bullet_group, main.all_sprites)
+        self.image = None
         self.main = main
         self.direction = direction
         self.bullet_speed = bullet_speed
@@ -830,11 +983,12 @@ class Artifact(pygame.sprite.Sprite):
                         self.parameters[i] * self.main.player.player_parameters[i])
                 else:
                     self.main.player.player_parameters[i] = 1
-            self.main.player.player_parameters[2] += self.parameters[2] * self.main.player.player_parameters[2] * \
-                                                     self.main.player.player_parameters[1]
+            self.main.player.player_parameters[2] += (self.parameters[2] * self.main.player.player_parameters[2] *
+                                                      self.main.player.player_parameters[1])
             if self.parameters[1] > self.main.player.player_parameters[1]:
                 self.main.player.player_parameters[1] = self.parameters[1]
             self.main.player.player_parameters[5] += self.parameters[5]
+            self.main.player_parameters = self.main.player.player_parameters
             self.kill()
             print(self.main.player.player_parameters)
         if pygame.sprite.spritecollide(self, self.main.bullet_group, False):
