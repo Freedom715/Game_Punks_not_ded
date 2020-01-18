@@ -110,7 +110,6 @@ class MusicAndSounds:
         self.stream.load(self.music_path + 'Gimn_punks_Red_plesen.mp3')
         self.stream.play()
         self.stream.set_volume(0.05 * self.music_coeff)
-        print(type(self.stream))
         # fon = pygame.mixer.Sound(file='094__ACOne__C17_Hoppers.wav')
         # fon.play()
 
@@ -253,19 +252,36 @@ class Main:
         self.player = self.room.player
         self.game_map.update_doors()
 
-    def menu(self):
-        self.music.menu()
-        self.buttons_group = pygame.sprite.Group()
-        fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
-        self.screen.blit(fon, (0, 0))
+    def menu(self, game_in_process=False):
+        if not game_in_process:
+            pygame.mouse.set_visible(1)
+            self.music.menu()
+            self.buttons_group = pygame.sprite.Group()
+            fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
+            self.screen.blit(fon, (0, 0))
 
-        Button(self.screen, self.buttons_group, 250, 100, "Start_button.png",
-               "Start_button.png", False,
-               self.start_game)
-        Button(self.screen, self.buttons_group, 250, 200, "Setting_button.png",
-               "Setting_button.png", False, None)
-        Button(self.screen, self.buttons_group, 250, 300, "Autors_button.png",
-               "Autors_button.png", False, self.autors_show)
+            Button(self.screen, self.buttons_group, 250, 150, "Start_button.png",
+                   "Start_button.png", False,
+                   self.start_game)
+            Button(self.screen, self.buttons_group, 250, 250, "Setting_button.png",
+                   "Setting_button.png", False, None)
+            Button(self.screen, self.buttons_group, 250, 350, "Autors_button.png",
+                   "Autors_button.png", False, self.autors_show)
+            Button(self.screen, self.buttons_group, 250, 450, "Exit_button.png",
+                   "Exit_button.png", False, self.exit)
+        else:
+            pygame.mouse.set_visible(1)
+            self.music.menu()
+            self.buttons_group = pygame.sprite.Group()
+            fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
+            self.screen.blit(fon, (0, 0))
+
+            Button(self.screen, self.buttons_group, 250, 150, "Continue_button.png",
+                   "Continue_button.png", False, self.start_game)
+            Button(self.screen, self.buttons_group, 250, 250, "Setting_button.png",
+                   "Setting_button.png", False, None)
+            Button(self.screen, self.buttons_group, 250, 350, "Exit_button.png",
+                   "Exit_button.png", False, self.exit)
 
         while True:
             for event in pygame.event.get():
@@ -279,6 +295,9 @@ class Main:
             pygame.display.flip()
             self.clock.tick(FPS)
 
+    def exit(self):
+        self.terminate()
+
     def parameters(self):
         # Прибавить\убавить звук в игре(без звука\тихо\норма\громко\бассбустед)
         # Прибавить\убавить музыку
@@ -287,6 +306,7 @@ class Main:
         pass
 
     def start_game(self):
+        pygame.mouse.set_visible(0)
         self.music.game()
         self.player_parameters = [5, 1, 3.5, 5, 21, 6]
         self.load_map(5)
@@ -301,7 +321,7 @@ class Main:
         font = pygame.font.Font(None, 30)
         text_rendered = font.render(text, 1, pygame.Color('black'))
         self.screen.blit(text_rendered, (250, 100))
-        button_start = Button(self.screen, self.buttons_group, 250, 200, "Start_button.png",
+        Button(self.screen, self.buttons_group, 250, 200, "Start_button.png",
                               "Start_button.png", False,
                               self.start_game)
 
@@ -326,17 +346,22 @@ class Main:
             self.screen.blit(string_rendered, intro_rect)
 
     def game_over(self):
+        pygame.mouse.set_visible(1)
         self.buttons_group = pygame.sprite.Group()
         text = "Гамовер"
         fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
         self.screen.blit(fon, (0, 0))
         font = pygame.font.Font(None, 100)
         text_rendered = font.render(text, 1, pygame.Color('black'))
-        self.screen.blit(text_rendered, (250, 100))
+        self.screen.blit(text_rendered, (250, 175))
 
-        button_start = Button(self.screen, self.buttons_group, 250, 200, "Continue_button.png",
+        Button(self.screen, self.buttons_group, 250, 250, "Continue_button.png",
                               "Continue_button.png", False,
                               self.start_game)
+        Button(self.screen, self.buttons_group, 250, 350, "Setting_button.png",
+               "Setting_button.png", False, None)
+        Button(self.screen, self.buttons_group, 250, 450, "Exit_button.png",
+               "Exit_button.png", False, self.exit)
 
         while True:
             for event in pygame.event.get():
@@ -382,7 +407,7 @@ class Main:
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_ESCAPE] == 1:
-                return
+                self.menu(game_in_process=True)
             if keys[pygame.K_r] == 1:
                 self.start_game()
             if keys[pygame.K_w] == 1:
