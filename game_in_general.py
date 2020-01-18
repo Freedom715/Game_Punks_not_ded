@@ -8,7 +8,6 @@ from PIL import Image
 from pygame.locals import *
 
 FPS = 50
-
 pygame.init()
 
 
@@ -99,6 +98,58 @@ def get_frames(obj):
         pass
 
 
+class MusicAndSounds:
+    def __init__(self, volume_coeff=1, music_coeff=1):
+        pygame.mixer.init()
+        self.music_path = 'Sounds/'
+        self.stream = pygame.mixer.music
+        self.volume_coeff = volume_coeff
+        self.music_coeff = music_coeff
+
+    def menu(self):
+        self.stream.load(self.music_path + 'Gimn_punks_Red_plesen.mp3')
+        self.stream.play()
+        self.stream.set_volume(0.05 * self.music_coeff)
+        print(type(self.stream))
+        # fon = pygame.mixer.Sound(file='094__ACOne__C17_Hoppers.wav')
+        # fon.play()
+
+    def game(self, dir_name='Our_playlist'):
+        self.stream.stop()
+        game_fon = os.listdir(self.music_path + dir_name + '/')
+        music_path = self.music_path + dir_name + '/'
+        # game_fon = ['Changes_Roman(48)[RUS]', 'Good_night_Roman(48)[RUS]',
+        #             'Gruppa_krovi_Roman(48)[RUS]', 'Star_with_name_Sun_Roman(48)[RUS]']
+        self.stream.load(music_path + choice(game_fon))
+        for _ in range(len(game_fon)):
+            self.stream.queue(music_path + choice(game_fon))
+        self.stream.play()
+        self.stream.set_volume(0.05 * self.music_coeff)
+
+    def artifact_get(self):
+        sound = pygame.mixer.Sound(self.music_path + 'Gulmen_Gde_zhe_etot_artefakt.wav')
+        sound.play()
+        sound.set_volume(0.1 * self.volume_coeff)
+
+    def ouch(self, who):
+        if who == 'hero':
+            sound = pygame.mixer.Sound(self.music_path + 'Hero_ouch.wav')
+            sound.set_volume(0.1 * self.volume_coeff)
+        elif who == 'enemy':
+            sound = pygame.mixer.Sound(self.music_path + 'Enemy_ouch.wav')
+            sound.set_volume(0.05 * self.volume_coeff)
+        sound.play()
+
+    def shoot(self, who):
+        if who == 'hero':
+            sound = pygame.mixer.Sound(self.music_path + 'Hero_throw.ogg')
+            sound.set_volume(0.1 * self.volume_coeff)  # TODO пофиксить воспроизведение
+        elif who == 'enemy':
+            sound = pygame.mixer.Sound(self.music_path + 'Enemy_shoot.wav')
+            sound.set_volume(0.01 * self.volume_coeff)
+        sound.play()
+
+
 class Button(pygame.sprite.Sprite):
     def __init__(self, screen, menu_button_group, x, y, image, selected_image, selected,
                  clicked_func):
@@ -122,6 +173,7 @@ class Button(pygame.sprite.Sprite):
 
 class Main:
     def __init__(self):
+        self.music = MusicAndSounds()
         self.size = self.WIDTH, self.HEIGHT = 850, 650
         self.screen = pygame.display.set_mode(self.size)
         self.clock = pygame.time.Clock()
@@ -193,7 +245,6 @@ class Main:
         self.game_map = Map(rooms_count, self)
 
     def load_room(self, direction):
-        print(self.player_parameters)
         self.all_sprites, self.tiles_group = pygame.sprite.Group(), pygame.sprite.Group()
         self.artifact_group, self.player_group = pygame.sprite.Group(), pygame.sprite.Group()
         self.bullet_group, self.enemy_group = pygame.sprite.Group(), pygame.sprite.Group()
@@ -203,6 +254,7 @@ class Main:
         self.game_map.update_doors()
 
     def menu(self):
+        self.music.menu()
         self.buttons_group = pygame.sprite.Group()
         fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
         self.screen.blit(fon, (0, 0))
@@ -214,15 +266,6 @@ class Main:
                "Setting_button.png", False, None)
         Button(self.screen, self.buttons_group, 250, 300, "Autors_button.png",
                "Autors_button.png", False, self.autors_show)
-
-        # for line in intro_text:
-        #    string_rendered = font.render(line, 1, pygame.Color('black'))
-        #    intro_rect = string_rendered.get_rect()
-        #    text_coord += 10
-        #    intro_rect.top = text_coord
-        #    intro_rect.x = 10
-        #    text_coord += intro_rect.height
-        #    self.screen.blit(string_rendered, intro_rect)
 
         while True:
             for event in pygame.event.get():
@@ -236,7 +279,15 @@ class Main:
             pygame.display.flip()
             self.clock.tick(FPS)
 
+    def parameters(self):
+        # Прибавить\убавить звук в игре(без звука\тихо\норма\громко\бассбустед)
+        # Прибавить\убавить музыку
+        # Сложность (для детей\средний\для профи)
+        # Плейлист (имя папки с музыкой в папке Sounds, где все файлы в формате mp3, wav или ogg)
+        pass
+
     def start_game(self):
+        self.music.game()
         self.player_parameters = [5, 1, 3.5, 5, 21, 6]
         self.load_map(5)
         self.load_room(0)
@@ -765,6 +816,7 @@ class Enemy(pygame.sprite.Sprite):
             self.direction = direction
 
     def shoot(self, direction):
+        self.main.music.shoot('enemy')
         self.change_image(self.shooting_images, direction)
         if self.count % self.main.shooting_tick_delay == 0:
             Bullet(self.rect.x + self.main.player_size_x // 2 - 5,
@@ -799,11 +851,12 @@ class Enemy(pygame.sprite.Sprite):
             if pygame.sprite.spritecollideany(self, self.main.bullet_group,
                                               False).sprites_to_damage == self.main.enemy_group:
                 self.hp -= self.main.player.attack()
+                self.main.music.ouch('enemy')
                 if self.hp - self.main.player.attack() <= 0:
                     self.kill()
                 print('Ouch!', self.hp)
-        if pygame.sprite.spritecollideany(self, self.main.player_group, False):
-            print('Go away!')
+        # if pygame.sprite.spritecollideany(self, self.main.player_group, False):
+        #     print('Go away!')
 
     def move(self):
         if self.room.find_way(self.get_pos(self.rect.x, self.rect.y),
@@ -947,6 +1000,7 @@ class Player(pygame.sprite.Sprite):
                 if self.player_parameters[5] <= 0:
                     self.main.game_over()
                 print('Ouch!', self.player_parameters[5])
+                self.main.music.ouch('hero')
 
     def move(self, direction):
         self.change_direction(direction)
@@ -995,6 +1049,7 @@ class Player(pygame.sprite.Sprite):
                self.rect.y + self.main.player_size_y // 2 - 5,
                "Images/bottle_", direction, self.main.player.player_parameters[3],
                self.main.enemy_group, self.main)
+        self.main.music.shoot('hero')
 
     def attack(self):
         return self.player_parameters[1] * self.player_parameters[2]
@@ -1100,6 +1155,7 @@ class Artifact(pygame.sprite.Sprite):
     def check_collision(self):
         if pygame.sprite.spritecollide(self, self.main.player_group, False):
             print(self.main.player.player_parameters)
+            self.main.music.artifact_get()
             for i in (0, 4, 3):
                 if self.main.player.player_parameters[i] + int(
                         self.parameters[i] * self.main.player.player_parameters[i]) > 1:
