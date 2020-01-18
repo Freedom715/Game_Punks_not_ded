@@ -206,16 +206,14 @@ class Main:
         self.buttons_group = pygame.sprite.Group()
         fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
         self.screen.blit(fon, (0, 0))
-        font = pygame.font.Font(None, 30)
-        text_coord = 50
 
-        button_start = Button(self.screen, self.buttons_group, 250, 100, "Start_button.png",
-                              "Start_button.png", False,
-                              self.start_game)
-        button_settings = Button(self.screen, self.buttons_group, 250, 200, "Setting_button.png",
-                                 "Setting_button.png", False, None)
-        button_authors = Button(self.screen, self.buttons_group, 250, 300, "Autors_button.png",
-                                "Autors_button.png", False, self.autors_show)
+        Button(self.screen, self.buttons_group, 250, 100, "Start_button.png",
+               "Start_button.png", False,
+               self.start_game)
+        Button(self.screen, self.buttons_group, 250, 200, "Setting_button.png",
+               "Setting_button.png", False, None)
+        Button(self.screen, self.buttons_group, 250, 300, "Autors_button.png",
+               "Autors_button.png", False, self.autors_show)
 
         # for line in intro_text:
         #    string_rendered = font.render(line, 1, pygame.Color('black'))
@@ -247,8 +245,7 @@ class Main:
     def autors_show(self):
         fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
         text = "Урвачев Роман и Зотова Екатерина"
-        for b in self.buttons_group:
-            b.kill()
+        self.buttons_group = pygame.sprite.Group()
         self.screen.blit(fon, (0, 0))
         font = pygame.font.Font(None, 30)
         text_rendered = font.render(text, 1, pygame.Color('black'))
@@ -256,6 +253,26 @@ class Main:
         button_start = Button(self.screen, self.buttons_group, 250, 200, "Start_button.png",
                               "Start_button.png", False,
                               self.start_game)
+
+    def show_stats(self):
+        stats = ["Статистика персонажа", "Скорость", "Множитель урона", "Урон",
+                 "Скорость пули", "Время перезарядки", "ХП"]
+        intro_text = []
+        text_coord = 50
+        font = pygame.font.Font(None, 36)
+        for i in range(len(stats)):
+            if i >= 1:
+                intro_text.append(stats[i] + ": " + str(self.player_parameters[i - 1]))
+            else:
+                intro_text.append(stats[i])
+        for line in intro_text:
+            string_rendered = font.render(line, 1, pygame.Color('black'))
+            intro_rect = string_rendered.get_rect()
+            text_coord += 10
+            intro_rect.top = text_coord
+            intro_rect.x = 50
+            text_coord += intro_rect.height
+            self.screen.blit(string_rendered, intro_rect)
 
     def game_over(self):
         self.buttons_group = pygame.sprite.Group()
@@ -266,8 +283,8 @@ class Main:
         text_rendered = font.render(text, 1, pygame.Color('black'))
         self.screen.blit(text_rendered, (250, 100))
 
-        button_start = Button(self.screen, self.buttons_group, 250, 200, "Start_button.png",
-                              "Start_button.png", False,
+        button_start = Button(self.screen, self.buttons_group, 250, 200, "Continue_button.png",
+                              "Continue_button.png", False,
                               self.start_game)
 
         while True:
@@ -291,15 +308,26 @@ class Main:
 
     def main_cycle(self):
         while self.running:
+            self.screen.fill((0, 0, 0))
+            self.tiles_group.draw(self.screen)
+            self.enemy_group.draw(self.screen)
+            self.artifact_group.draw(self.screen)
+            self.bullet_group.draw(self.screen)
+            self.player_group.draw(self.screen)
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.running = False
+                    self.terminate()
                 if event.type == pygame.KEYDOWN:
                     self.counter = 0
                 if event.type == pygame.KEYUP:
-                    self.player.cur = 0
-                    self.player.change_image(self.player.images, self.player.direction)
-                    self.player.change_direction(-1)
+                    if (event.key == pygame.K_w or event.key == pygame.K_s or
+                            event.key == pygame.K_a or event.key == pygame.K_d or
+                            event.key == pygame.K_UP or event.key == pygame.K_RIGHT or
+                            event.key == pygame.K_DOWN or event.key == pygame.K_LEFT):
+                        self.player.cur = 0
+                        self.player.change_image(self.player.images, self.player.direction)
+                        self.player.change_direction(-1)
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_ESCAPE] == 1:
@@ -326,13 +354,8 @@ class Main:
             elif keys[pygame.K_LEFT]:
                 if self.counter % self.player.player_parameters[4] == 0:
                     self.player.shoot(3)
-
-            self.screen.fill((0, 0, 0))
-            self.tiles_group.draw(self.screen)
-            self.enemy_group.draw(self.screen)
-            self.artifact_group.draw(self.screen)
-            self.bullet_group.draw(self.screen)
-            self.player_group.draw(self.screen)
+            elif keys[pygame.K_TAB] == 1:
+                self.show_stats()
 
             for elem in self.bullet_group:
                 elem.render()
@@ -411,7 +434,7 @@ class Room:
                     Tile('empty', x, y, False, False, False, self.main)
                 elif level[y][x] == 'E':
                     self.enemies.append(
-                        Enemy(self, x, y, self.main.player_image_file, self.main.player_shoot_file,
+                        Enemy(self, x, y, "Images\Cop_", "Images\Cop_shoot_",
                               -1, self.main))
                     Tile('empty', x, y, False, False, False, self.main)
                 if level[y][x] == 'R':
@@ -508,7 +531,7 @@ class Map:
     def __init__(self, rooms_count, main):
         self.rooms_count = rooms_count
         self.rooms = []
-        self.map = [[None] * (2 * rooms_count + 1) for _ in range(2 * rooms_count + 1)]
+        self.map = [[None] * (2 * rooms_count + 2) for _ in range(2 * rooms_count + 2)]
         self.current_x = rooms_count
         self.current_y = rooms_count
         self.main = main
@@ -789,13 +812,33 @@ class Enemy(pygame.sprite.Sprite):
                                         self.get_pos(self.room.player.rect.x,
                                                      self.room.player.rect.y))[-1]
             if self.rect.y < y1 * 50:
-                self.rect.y += self.speed
+                collision_test_rect = pygame.Rect((self.rect.x, self.rect.y + self.speed),
+                                                  (self.main.player_size_x, self.main.player_size_y))
+                if collision_test_rect.collidelist(
+                        [elem.rect if elem != self else pygame.Rect((0, 0), (0, 0)) for elem in
+                         self.main.enemy_group]) == -1:
+                    self.rect.y += self.speed
             elif self.rect.y > y1 * 50:
-                self.rect.y -= self.speed
+                collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - self.speed),
+                                                  (self.main.player_size_x, self.main.player_size_y))
+                if collision_test_rect.collidelist(
+                        [elem.rect if elem != self else pygame.Rect((0, 0), (0, 0)) for elem in
+                         self.main.enemy_group]) == -1:
+                    self.rect.y -= self.speed
             if self.rect.x < x1 * 50:
-                self.rect.x += self.speed
+                collision_test_rect = pygame.Rect((self.rect.x + self.speed, self.rect.y),
+                                                  (self.main.player_size_x, self.main.player_size_y))
+                if collision_test_rect.collidelist(
+                        [elem.rect if elem != self else pygame.Rect((0, 0), (0, 0)) for elem in
+                         self.main.enemy_group]) == -1:
+                    self.rect.x += self.speed
             elif self.rect.x > x1 * 50:
-                self.rect.x -= self.speed
+                collision_test_rect = pygame.Rect((self.rect.x - self.speed, self.rect.y),
+                                                  (self.main.player_size_x, self.main.player_size_y))
+                if collision_test_rect.collidelist(
+                        [elem.rect if elem != self else pygame.Rect((0, 0), (0, 0)) for elem in
+                         self.main.enemy_group]) == -1:
+                    self.rect.x -= self.speed
 
     def get_pos(self, x, y):
         return x // 50, y // 50
