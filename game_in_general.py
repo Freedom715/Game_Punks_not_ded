@@ -822,7 +822,9 @@ class Enemy(pygame.sprite.Sprite):
                             [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem
                              in
                              self.main.tiles_group]) == -1:
-                        self.rect.y += self.speed
+                        if collision_test_rect.collidelist(
+                                [elem.rect for elem in self.main.player_group]) == -1:
+                            self.rect.y += self.speed
             elif self.rect.y > y1 * 50:
                 collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - self.speed),
                                                   (self.main.player_size_x, self.main.player_size_y))
@@ -833,7 +835,9 @@ class Enemy(pygame.sprite.Sprite):
                             [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem
                              in
                              self.main.tiles_group]) == -1:
-                        self.rect.y -= self.speed
+                        if collision_test_rect.collidelist(
+                                [elem.rect for elem in self.main.player_group]) == -1:
+                            self.rect.y -= self.speed
             if self.rect.x < x1 * 50:
                 collision_test_rect = pygame.Rect((self.rect.x + self.speed, self.rect.y),
                                                   (self.main.player_size_x, self.main.player_size_y))
@@ -844,7 +848,9 @@ class Enemy(pygame.sprite.Sprite):
                             [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem
                              in
                              self.main.tiles_group]) == -1:
-                        self.rect.x += self.speed
+                        if collision_test_rect.collidelist(
+                                [elem.rect for elem in self.main.player_group]) == -1:
+                            self.rect.x += self.speed
             elif self.rect.x > x1 * 50:
                 collision_test_rect = pygame.Rect((self.rect.x - self.speed, self.rect.y),
                                                   (self.main.player_size_x, self.main.player_size_y))
@@ -855,7 +861,9 @@ class Enemy(pygame.sprite.Sprite):
                             [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem
                              in
                              self.main.tiles_group]) == -1:
-                        self.rect.x -= self.speed
+                        if collision_test_rect.collidelist(
+                                [elem.rect for elem in self.main.player_group]) == -1:
+                            self.rect.x -= self.speed
 
     def get_pos(self, x, y):
         return x // 50, y // 50
@@ -949,28 +957,36 @@ class Player(pygame.sprite.Sprite):
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      self.main.tiles_group]) == -1:
-                self.rect.y -= player_speed
+                if collision_test_rect.collidelist(
+                        [elem.rect for elem in self.main.enemy_group]) == -1:
+                    self.rect.y -= player_speed
         if direction == 2:
             collision_test_rect = pygame.Rect((self.rect.x, self.rect.y + player_speed),
                                               (self.main.player_size_x, self.main.player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      self.main.tiles_group]) == -1:
-                self.rect.y += player_speed
+                if collision_test_rect.collidelist(
+                        [elem.rect for elem in self.main.enemy_group]) == -1:
+                    self.rect.y += player_speed
         if direction == 3:
             collision_test_rect = pygame.Rect((self.rect.x - player_speed, self.rect.y),
                                               (self.main.player_size_x, self.main.player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      self.main.tiles_group]) == -1:
-                self.rect.x -= player_speed
+                if collision_test_rect.collidelist(
+                        [elem.rect for elem in self.main.enemy_group]) == -1:
+                    self.rect.x -= player_speed
         if direction == 1:
             collision_test_rect = pygame.Rect((self.rect.x + player_speed, self.rect.y),
                                               (self.main.player_size_x, self.main.player_size_y))
             if collision_test_rect.collidelist(
                     [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem in
                      self.main.tiles_group]) == -1:
-                self.rect.x += player_speed
+                if collision_test_rect.collidelist(
+                        [elem.rect for elem in self.main.enemy_group]) == -1:
+                    self.rect.x += player_speed
 
     def shoot(self, direction):
         # TODO: анимация стрельбы
