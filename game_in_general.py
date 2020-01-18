@@ -811,34 +811,51 @@ class Enemy(pygame.sprite.Sprite):
             x1, y1 = self.room.find_way(self.get_pos(self.rect.x, self.rect.y),
                                         self.get_pos(self.room.player.rect.x,
                                                      self.room.player.rect.y))[-1]
+
             if self.rect.y < y1 * 50:
                 collision_test_rect = pygame.Rect((self.rect.x, self.rect.y + self.speed),
                                                   (self.main.player_size_x, self.main.player_size_y))
                 if collision_test_rect.collidelist(
                         [elem.rect if elem != self else pygame.Rect((0, 0), (0, 0)) for elem in
                          self.main.enemy_group]) == -1:
-                    self.rect.y += self.speed
+                    if collision_test_rect.collidelist(
+                            [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem
+                             in
+                             self.main.tiles_group]) == -1:
+                        self.rect.y += self.speed
             elif self.rect.y > y1 * 50:
                 collision_test_rect = pygame.Rect((self.rect.x, self.rect.y - self.speed),
                                                   (self.main.player_size_x, self.main.player_size_y))
                 if collision_test_rect.collidelist(
                         [elem.rect if elem != self else pygame.Rect((0, 0), (0, 0)) for elem in
                          self.main.enemy_group]) == -1:
-                    self.rect.y -= self.speed
+                    if collision_test_rect.collidelist(
+                            [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem
+                             in
+                             self.main.tiles_group]) == -1:
+                        self.rect.y -= self.speed
             if self.rect.x < x1 * 50:
                 collision_test_rect = pygame.Rect((self.rect.x + self.speed, self.rect.y),
                                                   (self.main.player_size_x, self.main.player_size_y))
                 if collision_test_rect.collidelist(
                         [elem.rect if elem != self else pygame.Rect((0, 0), (0, 0)) for elem in
                          self.main.enemy_group]) == -1:
-                    self.rect.x += self.speed
+                    if collision_test_rect.collidelist(
+                            [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem
+                             in
+                             self.main.tiles_group]) == -1:
+                        self.rect.x += self.speed
             elif self.rect.x > x1 * 50:
                 collision_test_rect = pygame.Rect((self.rect.x - self.speed, self.rect.y),
                                                   (self.main.player_size_x, self.main.player_size_y))
                 if collision_test_rect.collidelist(
                         [elem.rect if elem != self else pygame.Rect((0, 0), (0, 0)) for elem in
                          self.main.enemy_group]) == -1:
-                    self.rect.x -= self.speed
+                    if collision_test_rect.collidelist(
+                            [elem.rect if elem.block_player else pygame.Rect((0, 0), (0, 0)) for elem
+                             in
+                             self.main.tiles_group]) == -1:
+                        self.rect.x -= self.speed
 
     def get_pos(self, x, y):
         return x // 50, y // 50
