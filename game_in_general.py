@@ -178,6 +178,11 @@ class Main:
         self.clock = pygame.time.Clock()
         self.player_image_file = 'Images/Red_'
         self.player_shoot_file = 'Images/Red_run_'
+        self.vol_set_image, self.mus_set_image = 2, 2
+        self.volume_stages = ['sound_0_button.png', 'sound_1_button.png', 'sound_2_button.png',
+                              'sound_3_button.png', 'sound_4_button.png']
+        self.diff_stages = ['easy_diff_button.png', 'medium_diff_button.png', 'hard_diff_button.png']
+        self.diff_image = 1
         self.cell_size, self.player_size_x, self.player_size_y = 50, 50, 50
 
         self.tile_images = {
@@ -263,8 +268,10 @@ class Main:
             Button(self.screen, self.buttons_group, 250, 150, "Start_button.png",
                    "Start_button.png", False,
                    self.start_game)
+            Button(self.screen, self.buttons_group, 450, 375, self.diff_stages[self.diff_image],
+                   self.diff_stages[self.diff_image], False, None)
             Button(self.screen, self.buttons_group, 250, 250, "Setting_button.png",
-                   "Setting_button.png", False, None)
+                   "Setting_button.png", False, self.settings)
             Button(self.screen, self.buttons_group, 250, 350, "Autors_button.png",
                    "Autors_button.png", False, self.autors_show)
             Button(self.screen, self.buttons_group, 250, 450, "Exit_button.png",
@@ -276,10 +283,12 @@ class Main:
             fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
             self.screen.blit(fon, (0, 0))
 
+            Button(self.screen, self.buttons_group, 450, 375, self.diff_stages[self.diff_image],
+                   self.diff_stages[self.diff_image], False, None)
             Button(self.screen, self.buttons_group, 250, 150, "Continue_button.png",
                    "Continue_button.png", False, self.start_game)
             Button(self.screen, self.buttons_group, 250, 250, "Setting_button.png",
-                   "Setting_button.png", False, None)
+                   "Setting_button.png", False, self.settings)
             Button(self.screen, self.buttons_group, 250, 350, "Exit_button.png",
                    "Exit_button.png", False, self.exit)
 
@@ -298,12 +307,72 @@ class Main:
     def exit(self):
         self.terminate()
 
-    def parameters(self):
+    def settings(self):
+        fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
+        self.buttons_group = pygame.sprite.Group()
+        self.screen.blit(fon, (0, 0))
+        # Volume
+        Button(self.screen, self.buttons_group, 215, 150, "vol_button.png",
+               "vol_button.png", False, None)
+        Button(self.screen, self.buttons_group, 325, 150, "settings_left_button.png",
+               "settings_left_button.png", False, self.change_settings_sound_low)
+        Button(self.screen, self.buttons_group, 575, 150, "settings_right_button.png",
+               "settings_right_button.png", False, self.change_settings_sound_high)
+        Button(self.screen, self.buttons_group, 365, 150, self.volume_stages[self.vol_set_image],
+               self.volume_stages[self.vol_set_image], False, None)
+        # Music
+        Button(self.screen, self.buttons_group, 215, 250, "mus_button.png",
+               "mus_button.png", False, None)
+        Button(self.screen, self.buttons_group, 325, 250, "settings_left_button.png",
+               "settings_left_button.png", False, self.change_settings_music_low)
+        Button(self.screen, self.buttons_group, 575, 250, "settings_right_button.png",
+               "settings_right_button.png", False, self.change_settings_music_high)
+        Button(self.screen, self.buttons_group, 365, 250, self.volume_stages[self.mus_set_image],
+               self.volume_stages[self.mus_set_image], False, None)
+        # Difficulty
+        Button(self.screen, self.buttons_group, 450, 375, self.diff_stages[self.diff_image],
+               self.diff_stages[self.diff_image], False, self.change_settings_difficult)
+        # TODO сделай так чтобы можно было вписать нужную папку или просто выбрать
+        #  между двумя папками (или папками которые находятся в Sounds)
+
         # Прибавить\убавить звук в игре(без звука\тихо\норма\громко\бассбустед)
         # Прибавить\убавить музыку
         # Сложность (для детей\средний\для профи)
         # Плейлист (имя папки с музыкой в папке Sounds, где все файлы в формате mp3, wav или ogg)
         pass
+
+    # TODO переформатировать эти функции
+    def change_settings_sound_high(self):
+        self.vol_set_image = (self.vol_set_image + 1) % len(self.volume_stages)
+        self.music.volume_coeff = 1.5 * self.vol_set_image
+        self.settings()
+        self.music.menu()
+
+    def change_settings_sound_low(self):
+        # поправить
+        self.vol_set_image = self.vol_set_image - 1 if self.vol_set_image > 0 else len(
+            self.volume_stages)
+        self.music.volume_coeff = 1.5 * self.vol_set_image
+        self.settings()
+        self.music.menu()
+
+    def change_settings_music_high(self):
+        self.mus_set_image = (self.mus_set_image + 1) % len(self.volume_stages)
+        self.music.music_coeff = 1.5 * self.mus_set_image
+        self.settings()
+        self.music.menu()
+
+    def change_settings_music_low(self):
+        # поправить
+        self.mus_set_image = self.mus_set_image - 1 if self.vol_set_image >= 0 else len(
+            self.volume_stages)
+        self.music.music_coeff = 1.5 * self.mus_set_image
+        self.settings()
+        self.music.menu()
+
+    def change_settings_difficult(self):
+        self.diff_image = (self.diff_image + 1) % len(self.diff_stages)
+        self.settings()
 
     def start_game(self):
         pygame.mouse.set_visible(0)
@@ -322,8 +391,8 @@ class Main:
         text_rendered = font.render(text, 1, pygame.Color('black'))
         self.screen.blit(text_rendered, (250, 100))
         Button(self.screen, self.buttons_group, 250, 200, "Start_button.png",
-                              "Start_button.png", False,
-                              self.start_game)
+               "Start_button.png", False,
+               self.start_game)
 
     def show_stats(self):
         stats = ["Статистика персонажа", "Скорость", "Множитель урона", "Урон",
@@ -356,8 +425,8 @@ class Main:
         self.screen.blit(text_rendered, (250, 175))
 
         Button(self.screen, self.buttons_group, 250, 250, "Continue_button.png",
-                              "Continue_button.png", False,
-                              self.start_game)
+               "Continue_button.png", False,
+               self.start_game)
         Button(self.screen, self.buttons_group, 250, 350, "Setting_button.png",
                "Setting_button.png", False, None)
         Button(self.screen, self.buttons_group, 250, 450, "Exit_button.png",
