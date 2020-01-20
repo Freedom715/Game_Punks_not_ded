@@ -7,9 +7,6 @@ import pygame
 from PIL import Image
 from pygame.locals import *
 
-FPS = 50
-pygame.init()
-
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('Images', name)
@@ -436,13 +433,13 @@ class Main:
         text_rendered = font.render(text, 1, pygame.Color('black'))
         self.screen.blit(text_rendered, (250, 175))
 
-        Button(self.screen, self.buttons_group, 250, 250, "Continue_button.png",
-               "Continue_button.png", False,
+        Button(self.screen, self.buttons_group, 250, 250, "Buttons\Continue_button.png",
+               "Buttons\Continue_button.png", False,
                self.start_game)
-        Button(self.screen, self.buttons_group, 250, 350, "Setting_button.png",
-               "Setting_button.png", False, None)
-        Button(self.screen, self.buttons_group, 250, 450, "Exit_button.png",
-               "Exit_button.png", False, self.exit)
+        Button(self.screen, self.buttons_group, 250, 350, "Buttons\Setting_button.png",
+               "Buttons\Setting_button.png", False, self.settings)
+        Button(self.screen, self.buttons_group, 250, 450, "Buttons\Exit_button.png",
+               "Buttons\Exit_button.png", False, self.exit)
 
         while True:
             for event in pygame.event.get():
@@ -547,7 +544,8 @@ class Main:
 class Room:
     def __init__(self, filename, main):
         self.main = main
-        self.filename, self.exits, self.enemies, self.room_map = filename, [], [], []
+        self.enemies_init, self.artifacts_init = True, True
+        self.filename, self.exits, self.enemies, self.room_map, self.artifacts = filename, [], 0, [], 0
         self.door_up, self.door_right, self.door_down, self.door_left = None, None, None, None
         self.load_level(self.filename + ".txt")
         self.player, self.width, self.height = None, None, None
@@ -590,10 +588,10 @@ class Room:
                                             self.main, self.main.player_parameters)
                     Tile('empty', x, y, False, False, False, self.main)
                 elif level[y][x] == 'E':
-                    self.enemies.append(
-                        Enemy(self, x, y, "Images/Entities/Enemies/Cop_",
-                              "Images/Entities/Enemies/Cop_shoot_",
-                              -1, self.main))
+                    if self.enemies_init:
+                        Enemy(self, x, y, "Images/Entities/Enemies/Cop_", "Images/Entities/Enemies/Cop_shoot_",
+                              -1, self.main)
+                        self.enemies += 1
                     Tile('empty', x, y, False, False, False, self.main)
                 if level[y][x] == 'R':
                     Tile('rock', x, y, True, True, False, self.main)
@@ -601,7 +599,9 @@ class Room:
                     Tile('hole', x, y, True, False, True, self.main)
                 elif level[y][x] == "A":
                     Tile('empty', x, y, False, False, False, self.main)
-                    Artifact(x, y, self.main)
+                    if self.artifacts_init:
+                        self.artifacts += 1
+                        Artifact(x, y, self.main)
                 elif level[y][x] == '^':
                     self.door_up = Tile('door_up', x, y, False, True, False, self.main)
                     if player_direction == 0 and self.filename != "start":
@@ -626,7 +626,7 @@ class Room:
                         new_player = Player(self, x + 1, y, self.main.player_image_file,
                                             self.main.player_shoot_file,
                                             -1, self.main, self.main.player_parameters)
-
+        self.artifacts_init, self.enemies_init = False, False
         return new_player, x, y
 
     def find_way(self, coords1, coords2):
@@ -707,8 +707,8 @@ class Map:
 
     def generate_map(self):
         x, y = self.current_x, self.current_y
-        self.map[y][x] = Room("start", self.main)
-        self.rooms.append(Room("start", self.main))
+        self.map[y][x] = Room("artifact_room", self.main)
+        self.rooms.append(Room("artifact_room", self.main))
 
         special_rooms_directions = {}
 
@@ -747,13 +747,13 @@ class Map:
                     if direction in special_rooms_directions:
                         self.map[y][x] = Room(special_rooms_directions[direction], self.main)
 
-            for elem in self.map:
-                for elem1 in elem:
-                    if elem1:
-                        print(elem1.filename[0:2], end=" ")
-                    else:
-                        print("  ", end=" ")
-                print()
+        self.update_doors()
+        for elem in self.map:
+            for elem1 in elem:
+                if elem1:
+                    print(elem1.filename[0:2], end=" ")
+                else:
+                    print("  ", end=" ")
             print()
 
     def room_check_neighbours(self, room, x, y):
@@ -767,76 +767,111 @@ class Map:
         return self.map[self.current_y][self.current_x]
 
     def check_door(self):
-        if self.map[self.current_y][self.current_x].door_up is not None:
-            if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
-                                                     self.map[self.current_y][
-                                                         self.current_x].door_up):
+        current_room = self.map[self.current_y][self.current_x]
+        if current_room.door_up is not None:
+            if pygame.sprite.collide_rect_ratio(0.5)(current_room.player, current_room.door_up):
                 if self.map[self.current_y - 1][self.current_x] is not None:
                     self.current_y -= 1
                     return True, 2
-        if self.map[self.current_y][self.current_x].door_right is not None:
-            if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
-                                                     self.map[self.current_y][
-                                                         self.current_x].door_right):
+        if current_room.door_right is not None:
+            if pygame.sprite.collide_rect_ratio(0.5)(current_room.player, current_room.door_right):
                 if self.map[self.current_y][self.current_x + 1] is not None:
                     self.current_x += 1
                     return True, 3
-        if self.map[self.current_y][self.current_x].door_down is not None:
-            if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
-                                                     self.map[self.current_y][
-                                                         self.current_x].door_down):
+        if current_room.door_down is not None:
+            if pygame.sprite.collide_rect_ratio(0.5)(current_room.player, current_room.door_down):
                 if self.map[self.current_y + 1][self.current_x] is not None:
                     self.current_y += 1
                     return True, 0
-        if self.map[self.current_y][self.current_x].door_left is not None:
-            if pygame.sprite.collide_rect_ratio(0.5)(self.map[self.current_y][self.current_x].player,
-                                                     self.map[self.current_y][
-                                                         self.current_x].door_left):
+        if current_room.door_left is not None:
+            if pygame.sprite.collide_rect_ratio(0.5)(current_room.player, current_room.door_left):
                 if self.map[self.current_y][self.current_x - 1] is not None:
                     self.current_x -= 1
                     return True, 1
         return False, 0
 
     def update_doors(self):
-        if self.map[self.current_y][self.current_x].door_up is not None:
-            if not self.map[self.current_y - 1][self.current_x]:
-                self.map[self.current_y][self.current_x].door_up.image = self.main.tile_images[
-                    'door_up_closed']
-                self.map[self.current_y][self.current_x].door_up.block_player = True
-            elif 2 not in self.map[self.current_y - 1][self.current_x].exits:
-                self.map[self.current_y][self.current_x].door_up.image = self.main.tile_images[
-                    'door_up_closed']
-                self.map[self.current_y][self.current_x].door_up.block_player = True
+        current_room = self.map[self.current_y][self.current_x]
+        room_up = self.map[self.current_y - 1][self.current_x]
+        room_right = self.map[self.current_y][self.current_x + 1]
+        room_down = self.map[self.current_y + 1][self.current_x]
+        room_left = self.map[self.current_y][self.current_x - 1]
 
-        if self.map[self.current_y][self.current_x].door_right is not None:
-            if not self.map[self.current_y][self.current_x + 1]:
-                self.map[self.current_y][self.current_x].door_right.image = self.main.tile_images[
+        if current_room.door_up is not None:
+            if current_room.enemies != 0 or current_room.artifacts != 0:
+                current_room.door_up.image = self.main.tile_images[
+                    'door_up_closed']
+                current_room.door_up.block_player = True
+            else:
+                current_room.door_up.image = self.main.tile_images[
+                    'door_up']
+                current_room.door_up.block_player = False
+
+            if not room_up:
+                current_room.door_up.image = self.main.tile_images[
+                    'door_up_closed']
+                current_room.door_up.block_player = True
+            elif 2 not in room_up.exits:
+                current_room.door_up.image = self.main.tile_images[
+                    'door_up_closed']
+                current_room.door_up.block_player = True
+
+        if current_room.door_right is not None:
+            if current_room.enemies != 0 or current_room.artifacts != 0:
+                current_room.door_right.image = self.main.tile_images[
                     'door_right_closed']
-                self.map[self.current_y][self.current_x].door_right.block_player = True
-            elif 3 not in self.map[self.current_y][self.current_x + 1].exits:
-                self.map[self.current_y][self.current_x].door_right.image = self.main.tile_images[
-                    'door_up_closed']
-                self.map[self.current_y][self.current_x].door_right.block_player = True
+                current_room.door_right.block_player = True
+            else:
+                current_room.door_right.image = self.main.tile_images[
+                    'door_right']
+                current_room.door_right.block_player = False
 
-        if self.map[self.current_y][self.current_x].door_down is not None:
-            if not self.map[self.current_y + 1][self.current_x]:
-                self.map[self.current_y][self.current_x].door_down.image = self.main.tile_images[
+            if not room_right:
+                current_room.door_right.image = self.main.tile_images[
+                    'door_right_closed']
+                current_room.door_right.block_player = True
+            elif 3 not in room_right.exits:
+                current_room.door_right.image = self.main.tile_images[
+                    'door_right_closed']
+                current_room.door_right.block_player = True
+
+        if current_room.door_down is not None:
+            if current_room.enemies != 0 or current_room.artifacts != 0:
+                current_room.door_down.image = self.main.tile_images[
                     'door_down_closed']
-                self.map[self.current_y][self.current_x].door_down.block_player = True
-            elif 0 not in self.map[self.current_y + 1][self.current_x].exits:
-                self.map[self.current_y][self.current_x].door_down.image = self.main.tile_images[
-                    'door_up_closed']
-                self.map[self.current_y][self.current_x].door_down.block_player = True
+                current_room.door_down.block_player = True
+            else:
+                current_room.door_down.image = self.main.tile_images[
+                    'door_down']
+                current_room.door_down.block_player = False
 
-        if self.map[self.current_y][self.current_x].door_left is not None:
-            if not self.map[self.current_y][self.current_x - 1]:
-                self.map[self.current_y][self.current_x].door_left.image = self.main.tile_images[
+            if not room_down:
+                current_room.door_down.image = self.main.tile_images[
+                    'door_down_closed']
+                current_room.door_down.block_player = True
+            elif 0 not in room_down.exits:
+                current_room.door_down.image = self.main.tile_images[
+                    'door_down_closed']
+                current_room.door_down.block_player = True
+
+        if current_room.door_left is not None:
+            if current_room.enemies != 0 or current_room.artifacts != 0:
+                current_room.door_left.image = self.main.tile_images[
                     'door_left_closed']
-                self.map[self.current_y][self.current_x].door_left.block_player = True
-            elif 1 not in self.map[self.current_y][self.current_x - 1].exits:
-                self.map[self.current_y][self.current_x].door_left.image = self.main.tile_images[
-                    'door_up_closed']
-                self.map[self.current_y][self.current_x].door_left.block_player = True
+                current_room.door_left.block_player = True
+            else:
+                current_room.door_left.image = self.main.tile_images[
+                    'door_left']
+                current_room.door_left.block_player = False
+
+            if not room_left:
+                current_room.door_left.image = self.main.tile_images[
+                    'door_left_closed']
+                current_room.door_left.block_player = True
+            elif 1 not in room_left.exits:
+                current_room.door_left.image = self.main.tile_images[
+                    'door_left_closed']
+                current_room.door_left.block_player = True
 
 
 class Tile(pygame.sprite.Sprite):
@@ -910,13 +945,9 @@ class Enemy(pygame.sprite.Sprite):
 
     def change_image(self, image_group, direction):
         if self.image_gif != image_group[direction]:
-            self.running = True
-            self.reversed = False
-            self.image_gif = image_group[direction]
-            self.frames = []
-            self.startpoint = 0
+            self.running, self.reversed, self.image_gif = True, False, image_group[direction]
+            self.frames, self.startpoint, self.cur, = [], 0, 0
             self.ptime = time.time()
-            self.cur = 0
             get_frames(self)
             self.breakpoint = len(self.frames) - 1
             self.render()
@@ -928,7 +959,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.count % self.main.shooting_tick_delay == 0:
             Bullet(self.rect.x + self.main.player_size_x // 2 - 5,
                    self.rect.y + self.main.player_size_y // 2 - 5,
-                   "Images/Bullets/tear_", direction, 5, self.main.player_group, self.main)
+                   "Images/Bullets/tear_", direction, 3, self.main.player_group, self.main)
         self.count += 1
 
     def check_player_coords(self):
@@ -961,6 +992,10 @@ class Enemy(pygame.sprite.Sprite):
                 self.main.music.ouch('enemy')
                 if self.hp - self.main.player.attack() <= 0:
                     self.kill()
+                    self.room.enemies -= 1
+                    if self.room.enemies == 0:
+                        self.main.game_map.update_doors()
+
                 print('Ouch!', self.hp)
         # if pygame.sprite.spritecollideany(self, self.main.player_group, False):
         #     print('Go away!')
@@ -1083,17 +1118,14 @@ class Player(pygame.sprite.Sprite):
         self.running = True
 
     def change_image(self, image_group, direction):
-        self.running = True
-        self.reversed = False
-        self.image_gif = image_group[direction]
-        self.frames = []
-        self.startpoint = 0
-        self.ptime = time.time()
-        self.cur = 0
-        get_frames(self)
-        self.breakpoint = len(self.frames) - 1
-        self.render()
-        self.direction = direction
+        if self.image_gif != image_group[direction]:
+            self.running, self.reversed, self.image_gif = True, False, image_group[direction]
+            self.frames, self.startpoint, self.cur, = [], 0, 0
+            self.ptime = time.time()
+            get_frames(self)
+            self.breakpoint = len(self.frames) - 1
+            self.render()
+            self.direction = direction
 
     def change_direction(self, direction):
         if direction != self.direction:
@@ -1150,7 +1182,6 @@ class Player(pygame.sprite.Sprite):
                     self.rect.x += player_speed
 
     def shoot(self, direction):
-        # TODO: анимация стрельбы
         self.change_image(self.shooting_images, direction)
         Bullet(self.rect.x + self.main.player_size_x // 2 - 5,
                self.rect.y + self.main.player_size_y // 2 - 5,
@@ -1262,26 +1293,30 @@ class Artifact(pygame.sprite.Sprite):
     def check_collision(self):
         if pygame.sprite.spritecollide(self, self.main.player_group, False):
             print(self.main.player.player_parameters)
+            player_parameters = self.main.player.player_parameters
             self.main.music.artifact_get()
             for i in (0, 4, 3):
-                if self.main.player.player_parameters[i] + int(
-                        self.parameters[i] * self.main.player.player_parameters[i]) > 1:
-                    self.main.player.player_parameters[i] += int(
-                        self.parameters[i] * self.main.player.player_parameters[i])
+                if player_parameters[i] + int(self.parameters[i] * player_parameters[i]) > 1:
+                    player_parameters[i] += int(self.parameters[i] * player_parameters[i])
                 else:
-                    self.main.player.player_parameters[i] = 1
-            self.main.player.player_parameters[2] += (
-                    self.parameters[2] * self.main.player.player_parameters[2] *
-                    self.main.player.player_parameters[1])
-            if self.parameters[1] > self.main.player.player_parameters[1]:
-                self.main.player.player_parameters[1] = self.parameters[1]
-            self.main.player.player_parameters[5] += self.parameters[5]
-            self.main.player_parameters = self.main.player.player_parameters
+                    player_parameters[i] = 1
+            player_parameters[2] += (self.parameters[2] * player_parameters[2] * player_parameters[1])
+            if self.parameters[1] > player_parameters[1]:
+                player_parameters[1] = self.parameters[1]
+            player_parameters[5] += self.parameters[5]
+            self.main.player_parameters = player_parameters
             self.kill()
-            print(self.main.player.player_parameters)
+            self.main.room.artifacts -= 1
+            if self.main.room.artifacts == 0:
+                self.main.game_map.update_doors()
+
+            print(player_parameters)
         if pygame.sprite.spritecollide(self, self.main.bullet_group, False):
             print('Ouch!')
 
+
+FPS = 50
+pygame.init()
 
 app = Main()
 
