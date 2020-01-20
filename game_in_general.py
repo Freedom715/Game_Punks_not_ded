@@ -707,8 +707,8 @@ class Map:
 
     def generate_map(self):
         x, y = self.current_x, self.current_y
-        self.map[y][x] = Room("artifact_room", self.main)
-        self.rooms.append(Room("artifact_room", self.main))
+        self.map[y][x] = Room("start", self.main)
+        self.rooms.append(Room("start", self.main))
 
         special_rooms_directions = {}
 
