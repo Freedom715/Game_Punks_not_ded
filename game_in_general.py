@@ -154,6 +154,10 @@ class Button(pygame.sprite.Sprite):
     def __init__(self, screen, menu_button_group, x, y, image, selected_image, selected,
                  clicked_func):
         super().__init__(menu_button_group)
+        self.menu_button_group = menu_button_group
+        self.x, self.y = x, y
+        self.screen = screen
+        self.a, self.b = image, selected_image
         self.not_selected_image = load_image(image)
         self.selected_image = load_image(selected_image)
         self.selected = selected
@@ -164,6 +168,16 @@ class Button(pygame.sprite.Sprite):
 
         self.clicked_func = clicked_func
         self.rect = self.image.get_rect().move(x, y)
+
+    def check_mouse_pos(self, pos):
+        if self.rect.collidepoint(pos):
+            self.selected = True
+            self.__init__(self.screen, self.menu_button_group, self.x, self.y, self.a,
+                          self.b, self.selected, self.clicked_func)
+        else:
+            self.selected = False
+            self.__init__(self.screen, self.menu_button_group, self.x, self.y, self.a,
+                          self.b, self.selected, self.clicked_func)
 
     def check_click(self, pos):
         if self.rect.collidepoint(pos):
@@ -183,6 +197,9 @@ class Main:
         self.volume_stages = ['sound_0_button.png', 'sound_1_button.png', 'sound_2_button.png',
                               'sound_3_button.png', 'sound_4_button.png']
         self.diff_stages = ['easy_diff_button.png', 'medium_diff_button.png', 'hard_diff_button.png']
+        self.selected_diff_stages = ['easy_diff_selected_button.png',
+                                     'medium_diff_selected_button.png',
+                                     'hard_diff_selected_button.png']
         self.diff_image = 1
         self.cell_size, self.player_size_x, self.player_size_y = 50, 50, 50
 
@@ -246,6 +263,7 @@ class Main:
         self.game_map = None
         self.player = None
         self.room = None
+        self.game_in_process = False
 
         self.menu()
 
@@ -261,8 +279,8 @@ class Main:
         self.player = self.room.player
         self.game_map.update_doors()
 
-    def menu(self, game_in_process=False):
-        if not game_in_process:
+    def menu(self):
+        if not self.game_in_process:
             pygame.mouse.set_visible(1)
             self.music.menu()
             self.buttons_group = pygame.sprite.Group()
@@ -270,17 +288,17 @@ class Main:
             self.screen.blit(fon, (0, 0))
 
             Button(self.screen, self.buttons_group, 250, 150, "Buttons/Start_button.png",
-                   "Buttons/Start_button.png", False,
+                   "Buttons/Start_selected_button.png", False,
                    self.start_game)
             Button(self.screen, self.buttons_group, 450, 375,
                    'Buttons/' + self.diff_stages[self.diff_image],
                    'Buttons/' + self.diff_stages[self.diff_image], False, None)
             Button(self.screen, self.buttons_group, 250, 250, "Buttons/Setting_button.png",
-                   "Buttons/Setting_button.png", False, self.settings)
+                   "Buttons/Setting_selected_button.png", False, self.settings)
             Button(self.screen, self.buttons_group, 250, 350, "Buttons/Autors_button.png",
-                   "Buttons/Autors_button.png", False, self.autors_show)
+                   "Buttons/Autors_selected_button.png", False, self.autors_show)
             Button(self.screen, self.buttons_group, 250, 450, "Buttons/Exit_button.png",
-                   "Buttons/Exit_button.png", False, self.exit)
+                   "Buttons/Exit_selected_button.png", False, self.exit)
         else:
             pygame.mouse.set_visible(1)
             self.music.menu()
@@ -292,16 +310,19 @@ class Main:
                    'Buttons/' + self.diff_stages[self.diff_image],
                    'Buttons/' + self.diff_stages[self.diff_image], False, None)
             Button(self.screen, self.buttons_group, 250, 150, "Buttons/Continue_button.png",
-                   "Buttons/Continue_button.png", False, self.start_game)
+                   "Buttons/Continue_selected_button.png", False, self.start_game)
             Button(self.screen, self.buttons_group, 250, 250, "Buttons/Setting_button.png",
-                   "Buttons/Setting_button.png", False, self.settings)
+                   "Buttons/Setting_selected_button.png", False, self.settings)
             Button(self.screen, self.buttons_group, 250, 350, "Buttons/Exit_button.png",
-                   "Buttons/Exit_button.png", False, self.exit)
+                   "Buttons/Exit_selected_button.png", False, self.exit)
 
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.terminate()
+                if event.type == pygame.MOUSEMOTION:
+                    for button in self.buttons_group:
+                        button.check_mouse_pos(event.pos)
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     for elem in self.buttons_group:
                         elem.check_click(event.pos)
@@ -319,31 +340,37 @@ class Main:
         self.screen.blit(fon, (0, 0))
         # Volume
         Button(self.screen, self.buttons_group, 215, 150, "Buttons/vol_button.png",
-               "Buttons/vol_button.png", False, None)
+               "Buttons/vol_selected_button.png", False, None)
         Button(self.screen, self.buttons_group, 325, 150, "Buttons/settings_left_button.png",
-               "Buttons/settings_left_button.png", False, self.change_settings_sound_low)
+               "Buttons/settings_left_selected_button.png", False, self.change_settings_sound_low)
         Button(self.screen, self.buttons_group, 575, 150, "Buttons/settings_right_button.png",
-               "Buttons/settings_right_button.png", False, self.change_settings_sound_high)
+               "Buttons/settings_right_selected_button.png", False, self.change_settings_sound_high)
         Button(self.screen, self.buttons_group, 365, 150,
                'Buttons/' + self.volume_stages[self.vol_set_image],
                'Buttons/' + self.volume_stages[self.vol_set_image], False, None)
         # Music
         Button(self.screen, self.buttons_group, 215, 250, "Buttons/mus_button.png",
-               "Buttons/mus_button.png", False, None)
+               "Buttons/mus_selected_button.png", False, None)
         Button(self.screen, self.buttons_group, 325, 250, "Buttons/settings_left_button.png",
-               "Buttons/settings_left_button.png", False, self.change_settings_music_low)
+               "Buttons/settings_left_selected_button.png", False, self.change_settings_music_low)
         Button(self.screen, self.buttons_group, 575, 250, "Buttons/settings_right_button.png",
-               "Buttons/settings_right_button.png", False, self.change_settings_music_high)
+               "Buttons/settings_right_selected_button.png", False, self.change_settings_music_high)
         Button(self.screen, self.buttons_group, 365, 250,
                'Buttons/' + self.volume_stages[self.mus_set_image],
                'Buttons/' + self.volume_stages[self.mus_set_image], False, None)
         # Difficulty
         Button(self.screen, self.buttons_group, 450, 375,
                'Buttons/' + self.diff_stages[self.diff_image],
-               'Buttons/' + self.diff_stages[self.diff_image], False, self.change_settings_difficult)
+               'Buttons/' + self.selected_diff_stages[self.diff_image], False,
+               self.change_settings_difficult)
+        if not self.game_in_process:
+            Button(self.screen, self.buttons_group, 275, 425, "Buttons/Back_button.png",
+                   "Buttons/Back_selected_button.png", False, self.menu)
+        else:
+            Button(self.screen, self.buttons_group, 250, 450, "Buttons/Continue_button.png",
+                   "Buttons/Continue_selected_button.png", False,
+                   self.start_game)
 
-        Button(self.screen, self.buttons_group, 275, 425, "Buttons/Back_button.png",
-               "Buttons/Exit_button.png", False, self.menu)
         # TODO сделай так чтобы можно было вписать нужную папку или просто выбрать
         #  между двумя папками (или папками которые находятся в Sounds)
 
@@ -387,6 +414,7 @@ class Main:
         self.settings()
 
     def start_game(self):
+        self.game_in_process = True
         pygame.mouse.set_visible(0)
         self.music.game()
         self.player_parameters = [5, 1, 3.5, 5, 21, 6]
@@ -403,7 +431,7 @@ class Main:
         text_rendered = font.render(text, 1, pygame.Color('black'))
         self.screen.blit(text_rendered, (250, 100))
         Button(self.screen, self.buttons_group, 250, 200, "Buttons/Start_button.png",
-               "Buttons/Start_button.png", False,
+               "Buttons/Start_selected_button.png", False,
                self.start_game)
 
     def show_stats(self):
@@ -436,18 +464,21 @@ class Main:
         text_rendered = font.render(text, 1, pygame.Color('black'))
         self.screen.blit(text_rendered, (250, 175))
 
-        Button(self.screen, self.buttons_group, 250, 250, "Continue_button.png",
-               "Continue_button.png", False,
+        Button(self.screen, self.buttons_group, 250, 250, "Buttons/Continue_button.png",
+               "Buttons/Continue_selected_button.png", False,
                self.start_game)
-        Button(self.screen, self.buttons_group, 250, 350, "Setting_button.png",
-               "Setting_button.png", False, None)
-        Button(self.screen, self.buttons_group, 250, 450, "Exit_button.png",
-               "Exit_button.png", False, self.exit)
+        Button(self.screen, self.buttons_group, 250, 350, "Buttons/Setting_button.png",
+               "Buttons/Setting_selected_button.png", False, self.settings)
+        Button(self.screen, self.buttons_group, 250, 450, "Buttons/Exit_button.png",
+               "Buttons/Exit_selected_button.png", False, self.exit)
 
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.terminate()
+                if event.type == pygame.MOUSEMOTION:
+                    for button in self.buttons_group:
+                        button.check_mouse_pos(event.pos)
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     for elem in self.buttons_group:
                         elem.check_click(event.pos)
@@ -488,7 +519,8 @@ class Main:
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_ESCAPE] == 1:
-                self.menu(game_in_process=True)
+                self.game_in_process = True
+                self.menu()
             if keys[pygame.K_r] == 1:
                 self.start_game()
             if keys[pygame.K_w] == 1:
