@@ -101,7 +101,8 @@ def get_frames(obj):
 class MusicAndSounds:
     def __init__(self, volume_coeff=1, music_coeff=1):
         pygame.mixer.init()
-        self.music_path = 'Sounds/'
+        self.sound_path = 'Sounds/'
+        self.music_path = 'Music/'
         self.stream = pygame.mixer.music
         self.volume_coeff = volume_coeff
         self.music_coeff = music_coeff
@@ -113,7 +114,7 @@ class MusicAndSounds:
         # fon = pygame.mixer.Sound(file='094__ACOne__C17_Hoppers.wav')
         # fon.play()
 
-    def game(self, dir_name='Our_playlist'):
+    def game(self, dir_name='Default_playlist'):
         self.stream.stop()
         game_fon = os.listdir(self.music_path + dir_name + '/')
         music_path = self.music_path + dir_name + '/'
@@ -126,25 +127,25 @@ class MusicAndSounds:
         self.stream.set_volume(0.05 * self.music_coeff)
 
     def artifact_get(self):
-        sound = pygame.mixer.Sound(self.music_path + 'Gulmen_Gde_zhe_etot_artefakt.wav')
+        sound = pygame.mixer.Sound(self.sound_path + 'Gulmen_Gde_zhe_etot_artefakt.wav')
         sound.play()
         sound.set_volume(0.1 * self.volume_coeff)
 
     def ouch(self, who):
         if who == 'hero':
-            sound = pygame.mixer.Sound(self.music_path + 'Hero_ouch.wav')
+            sound = pygame.mixer.Sound(self.sound_path + 'Hero_ouch.wav')
             sound.set_volume(0.1 * self.volume_coeff)
         elif who == 'enemy':
-            sound = pygame.mixer.Sound(self.music_path + 'Enemy_ouch.wav')
+            sound = pygame.mixer.Sound(self.sound_path + 'Enemy_ouch.wav')
             sound.set_volume(0.05 * self.volume_coeff)
         sound.play()
 
     def shoot(self, who):
         if who == 'hero':
-            sound = pygame.mixer.Sound(self.music_path + 'Hero_throw.ogg')
+            sound = pygame.mixer.Sound(self.sound_path + 'Hero_throw.ogg')
             sound.set_volume(0.1 * self.volume_coeff)  # TODO пофиксить воспроизведение
         elif who == 'enemy':
-            sound = pygame.mixer.Sound(self.music_path + 'Enemy_shoot.wav')
+            sound = pygame.mixer.Sound(self.sound_path + 'Enemy_shoot.wav')
             sound.set_volume(0.01 * self.volume_coeff)
         sound.play()
 
@@ -176,8 +177,8 @@ class Main:
         self.size = self.WIDTH, self.HEIGHT = 850, 650
         self.screen = pygame.display.set_mode(self.size)
         self.clock = pygame.time.Clock()
-        self.player_image_file = 'Images/Red_'
-        self.player_shoot_file = 'Images/Red_run_'
+        self.player_image_file = 'Images/Entities/Hero/Red_'
+        self.player_shoot_file = 'Images/Entities/Hero/Red_run_'
         self.vol_set_image, self.mus_set_image = 2, 2
         self.volume_stages = ['sound_0_button.png', 'sound_1_button.png', 'sound_2_button.png',
                               'sound_3_button.png', 'sound_4_button.png']
@@ -186,21 +187,23 @@ class Main:
         self.cell_size, self.player_size_x, self.player_size_y = 50, 50, 50
 
         self.tile_images = {
-            'wall': pygame.transform.scale(load_image('wall.png'), (self.cell_size, self.cell_size)),
-            'empty': pygame.transform.scale(load_image('floor.png'),
+            'wall': pygame.transform.scale(load_image('Tiles/wall.png'),
+                                           (self.cell_size, self.cell_size)),
+            'empty': pygame.transform.scale(load_image('Tiles/floor.png'),
                                             (self.cell_size, self.cell_size)),
-            'door_up': pygame.transform.scale(load_image('door.png'),
+            'door_up': pygame.transform.scale(load_image('Tiles/door.png'),
                                               (self.cell_size, self.cell_size)),
-            'door_right': pygame.transform.rotate(load_image('door.png'), 270),
-            'door_down': pygame.transform.rotate(load_image('door.png'), 180),
-            'door_left': pygame.transform.rotate(load_image('door.png'), 90),
-            'door_up_closed': pygame.transform.scale(load_image('door_closed.png'),
+            'door_right': pygame.transform.rotate(load_image('Tiles/door.png'), 270),
+            'door_down': pygame.transform.rotate(load_image('Tiles/door.png'), 180),
+            'door_left': pygame.transform.rotate(load_image('Tiles/door.png'), 90),
+            'door_up_closed': pygame.transform.scale(load_image('Tiles/door_closed.png'),
                                                      (self.cell_size, self.cell_size)),
-            'door_right_closed': pygame.transform.rotate(load_image('door_closed.png'), 270),
-            'door_down_closed': pygame.transform.rotate(load_image('door_closed.png'), 180),
-            'door_left_closed': pygame.transform.rotate(load_image('door_closed.png'), 90),
-            'hole': pygame.transform.scale(load_image('hole.png'), (self.cell_size, self.cell_size)),
-            'rock': pygame.transform.scale(load_image('rock.png', -1),
+            'door_right_closed': pygame.transform.rotate(load_image('Tiles/door_closed.png'), 270),
+            'door_down_closed': pygame.transform.rotate(load_image('Tiles/door_closed.png'), 180),
+            'door_left_closed': pygame.transform.rotate(load_image('Tiles/door_closed.png'), 90),
+            'hole': pygame.transform.scale(load_image('Tiles/hole.png'),
+                                           (self.cell_size, self.cell_size)),
+            'rock': pygame.transform.scale(load_image('Tiles/rock.png', -1),
                                            (self.cell_size, self.cell_size))}
         self.tile_width, self.tile_height = 50, 50
 
@@ -209,27 +212,28 @@ class Main:
         self.running = True
 
         # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
-        self.art_parameters = {'meat': (load_image('art_meat.png', -1), (0, 0, 1, 0, 0, 1, False)),
-                               'sandwich': (
-                                   load_image('art_sandwich.png', -1), (0, 0, 0, 0, 0, 1, False)),
-                               'breakfast': (
-                                   load_image('art_breakfast.png', -1), (0, 0, 0, 0, 0, 1, False)),
-                               'soup': (load_image('art_soup.png', -1), (0, 0, 0, 0, 0, 1, False)),
-                               'onion': (load_image('art_onion.png', -1), (0, 0, 0, 0.7, 0, False)),
-                               'screw': (
-                                   load_image('art_screw.png', -1), (0, 0, 0, 0.3, -0.2, False)),
-                               'amulet': (
-                                   load_image('art_amulet.png', -1), (0, 0, 1, 0, 0, 0, False)),
-                               'dead_cat': (
-                                   load_image('art_dead_cat.png', -1), (0, 1.5, 1, 0, 0, 0, True)),
-                               'mineral_water': (
-                                   load_image('art_mineral_water.png', -1),
-                                   (0, 0, 0.5, 0, 0, 0, False)),
-                               'good_morning': (
-                                   load_image('art_good_morning.png', -1),
-                                   (0, 0, 0.5, 0, -0.7, 1, False)),
-                               'eye': (
-                                   load_image('art_eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
+        self.art_parameters = {
+            'meat': (load_image('Artifacts/meat.png', -1), (0, 0, 1, 0, 0, 1, False)),
+            'sandwich': (
+                load_image('Artifacts/sandwich.png', -1), (0, 0, 0, 0, 0, 1, False)),
+            'breakfast': (
+                load_image('Artifacts/breakfast.png', -1), (0, 0, 0, 0, 0, 1, False)),
+            'soup': (load_image('Artifacts/soup.png', -1), (0, 0, 0, 0, 0, 1, False)),
+            'onion': (load_image('Artifacts/onion.png', -1), (0, 0, 0, 0.7, 0, False)),
+            'screw': (
+                load_image('Artifacts/screw.png', -1), (0, 0, 0, 0.3, -0.2, False)),
+            'amulet': (
+                load_image('Artifacts/amulet.png', -1), (0, 0, 1, 0, 0, 0, False)),
+            'dead_cat': (
+                load_image('Artifacts/dead_cat.png', -1), (0, 1.5, 1, 0, 0, 0, True)),
+            'mineral_water': (
+                load_image('Artifacts/mineral_water.png', -1),
+                (0, 0, 0.5, 0, 0, 0, False)),
+            'good_morning': (
+                load_image('Artifacts/good_morning.png', -1),
+                (0, 0, 0.5, 0, -0.7, 1, False)),
+            'eye': (
+                load_image('Artifacts/eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
 
         self.player_parameters = [5, 1, 3.5, 5, 21, 6]
 
@@ -265,17 +269,18 @@ class Main:
             fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
             self.screen.blit(fon, (0, 0))
 
-            Button(self.screen, self.buttons_group, 250, 150, "Start_button.png",
-                   "Start_button.png", False,
+            Button(self.screen, self.buttons_group, 250, 150, "Buttons/Start_button.png",
+                   "Buttons/Start_button.png", False,
                    self.start_game)
-            Button(self.screen, self.buttons_group, 450, 375, self.diff_stages[self.diff_image],
-                   self.diff_stages[self.diff_image], False, None)
-            Button(self.screen, self.buttons_group, 250, 250, "Setting_button.png",
-                   "Setting_button.png", False, self.settings)
-            Button(self.screen, self.buttons_group, 250, 350, "Autors_button.png",
-                   "Autors_button.png", False, self.autors_show)
-            Button(self.screen, self.buttons_group, 250, 450, "Exit_button.png",
-                   "Exit_button.png", False, self.exit)
+            Button(self.screen, self.buttons_group, 450, 375,
+                   'Buttons/' + self.diff_stages[self.diff_image],
+                   'Buttons/' + self.diff_stages[self.diff_image], False, None)
+            Button(self.screen, self.buttons_group, 250, 250, "Buttons/Setting_button.png",
+                   "Buttons/Setting_button.png", False, self.settings)
+            Button(self.screen, self.buttons_group, 250, 350, "Buttons/Autors_button.png",
+                   "Buttons/Autors_button.png", False, self.autors_show)
+            Button(self.screen, self.buttons_group, 250, 450, "Buttons/Exit_button.png",
+                   "Buttons/Exit_button.png", False, self.exit)
         else:
             pygame.mouse.set_visible(1)
             self.music.menu()
@@ -283,14 +288,15 @@ class Main:
             fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
             self.screen.blit(fon, (0, 0))
 
-            Button(self.screen, self.buttons_group, 450, 375, self.diff_stages[self.diff_image],
-                   self.diff_stages[self.diff_image], False, None)
-            Button(self.screen, self.buttons_group, 250, 150, "Continue_button.png",
-                   "Continue_button.png", False, self.start_game)
-            Button(self.screen, self.buttons_group, 250, 250, "Setting_button.png",
-                   "Setting_button.png", False, self.settings)
-            Button(self.screen, self.buttons_group, 250, 350, "Exit_button.png",
-                   "Exit_button.png", False, self.exit)
+            Button(self.screen, self.buttons_group, 450, 375,
+                   'Buttons/' + self.diff_stages[self.diff_image],
+                   'Buttons/' + self.diff_stages[self.diff_image], False, None)
+            Button(self.screen, self.buttons_group, 250, 150, "Buttons/Continue_button.png",
+                   "Buttons/Continue_button.png", False, self.start_game)
+            Button(self.screen, self.buttons_group, 250, 250, "Buttons/Setting_button.png",
+                   "Buttons/Setting_button.png", False, self.settings)
+            Button(self.screen, self.buttons_group, 250, 350, "Buttons/Exit_button.png",
+                   "Buttons/Exit_button.png", False, self.exit)
 
         while True:
             for event in pygame.event.get():
@@ -312,26 +318,32 @@ class Main:
         self.buttons_group = pygame.sprite.Group()
         self.screen.blit(fon, (0, 0))
         # Volume
-        Button(self.screen, self.buttons_group, 215, 150, "vol_button.png",
-               "vol_button.png", False, None)
-        Button(self.screen, self.buttons_group, 325, 150, "settings_left_button.png",
-               "settings_left_button.png", False, self.change_settings_sound_low)
-        Button(self.screen, self.buttons_group, 575, 150, "settings_right_button.png",
-               "settings_right_button.png", False, self.change_settings_sound_high)
-        Button(self.screen, self.buttons_group, 365, 150, self.volume_stages[self.vol_set_image],
-               self.volume_stages[self.vol_set_image], False, None)
+        Button(self.screen, self.buttons_group, 215, 150, "Buttons/vol_button.png",
+               "Buttons/vol_button.png", False, None)
+        Button(self.screen, self.buttons_group, 325, 150, "Buttons/settings_left_button.png",
+               "Buttons/settings_left_button.png", False, self.change_settings_sound_low)
+        Button(self.screen, self.buttons_group, 575, 150, "Buttons/settings_right_button.png",
+               "Buttons/settings_right_button.png", False, self.change_settings_sound_high)
+        Button(self.screen, self.buttons_group, 365, 150,
+               'Buttons/' + self.volume_stages[self.vol_set_image],
+               'Buttons/' + self.volume_stages[self.vol_set_image], False, None)
         # Music
-        Button(self.screen, self.buttons_group, 215, 250, "mus_button.png",
-               "mus_button.png", False, None)
-        Button(self.screen, self.buttons_group, 325, 250, "settings_left_button.png",
-               "settings_left_button.png", False, self.change_settings_music_low)
-        Button(self.screen, self.buttons_group, 575, 250, "settings_right_button.png",
-               "settings_right_button.png", False, self.change_settings_music_high)
-        Button(self.screen, self.buttons_group, 365, 250, self.volume_stages[self.mus_set_image],
-               self.volume_stages[self.mus_set_image], False, None)
+        Button(self.screen, self.buttons_group, 215, 250, "Buttons/mus_button.png",
+               "Buttons/mus_button.png", False, None)
+        Button(self.screen, self.buttons_group, 325, 250, "Buttons/settings_left_button.png",
+               "Buttons/settings_left_button.png", False, self.change_settings_music_low)
+        Button(self.screen, self.buttons_group, 575, 250, "Buttons/settings_right_button.png",
+               "Buttons/settings_right_button.png", False, self.change_settings_music_high)
+        Button(self.screen, self.buttons_group, 365, 250,
+               'Buttons/' + self.volume_stages[self.mus_set_image],
+               'Buttons/' + self.volume_stages[self.mus_set_image], False, None)
         # Difficulty
-        Button(self.screen, self.buttons_group, 450, 375, self.diff_stages[self.diff_image],
-               self.diff_stages[self.diff_image], False, self.change_settings_difficult)
+        Button(self.screen, self.buttons_group, 450, 375,
+               'Buttons/' + self.diff_stages[self.diff_image],
+               'Buttons/' + self.diff_stages[self.diff_image], False, self.change_settings_difficult)
+
+        Button(self.screen, self.buttons_group, 275, 425, "Buttons/Back_button.png",
+               "Buttons/Exit_button.png", False, self.menu)
         # TODO сделай так чтобы можно было вписать нужную папку или просто выбрать
         #  между двумя папками (или папками которые находятся в Sounds)
 
@@ -390,8 +402,8 @@ class Main:
         font = pygame.font.Font(None, 30)
         text_rendered = font.render(text, 1, pygame.Color('black'))
         self.screen.blit(text_rendered, (250, 100))
-        Button(self.screen, self.buttons_group, 250, 200, "Start_button.png",
-               "Start_button.png", False,
+        Button(self.screen, self.buttons_group, 250, 200, "Buttons/Start_button.png",
+               "Buttons/Start_button.png", False,
                self.start_game)
 
     def show_stats(self):
@@ -579,7 +591,8 @@ class Room:
                     Tile('empty', x, y, False, False, False, self.main)
                 elif level[y][x] == 'E':
                     self.enemies.append(
-                        Enemy(self, x, y, "Images\Cop_", "Images\Cop_shoot_",
+                        Enemy(self, x, y, "Images/Entities/Enemies/Cop_",
+                              "Images/Entities/Enemies/Cop_shoot_",
                               -1, self.main))
                     Tile('empty', x, y, False, False, False, self.main)
                 if level[y][x] == 'R':
@@ -915,7 +928,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.count % self.main.shooting_tick_delay == 0:
             Bullet(self.rect.x + self.main.player_size_x // 2 - 5,
                    self.rect.y + self.main.player_size_y // 2 - 5,
-                   "Images/tear_", direction, 5, self.main.player_group, self.main)
+                   "Images/Bullets/tear_", direction, 5, self.main.player_group, self.main)
         self.count += 1
 
     def check_player_coords(self):
@@ -1141,7 +1154,7 @@ class Player(pygame.sprite.Sprite):
         self.change_image(self.shooting_images, direction)
         Bullet(self.rect.x + self.main.player_size_x // 2 - 5,
                self.rect.y + self.main.player_size_y // 2 - 5,
-               "Images/bottle_", direction, self.main.player.player_parameters[3],
+               "Images/Bullets/bottle_", direction, self.main.player.player_parameters[3],
                self.main.enemy_group, self.main)
         self.main.music.shoot('hero')
 
