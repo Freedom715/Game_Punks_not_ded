@@ -9,6 +9,12 @@ from pygame.locals import *
 
 
 def load_image(name, colorkey=None):
+    """
+    Function for loading pictures from Images folders
+    :param name: name of image which need to load
+    :param colorkey: background color
+    :return: loaded image
+    """
     fullname = os.path.join('Images', name)
     image = pygame.image.load(fullname).convert()
     if colorkey is not None:
@@ -21,6 +27,11 @@ def load_image(name, colorkey=None):
 
 
 def get_frames(obj):
+    """
+    Function for cutting GIF-files on frames
+    :param obj: GIF-file
+    :return: set of the frames
+    """
     image = obj.image_gif
     pal = image.getpalette()
     base_palette = []
@@ -95,8 +106,30 @@ def get_frames(obj):
         pass
 
 
+def get_coords(coords, direction):
+    """
+    Function for room positioning
+    :param coords: coordinates of the room with current direction
+    :param direction: direction
+    :return: next room coord
+    """
+    if direction == 0:
+        return coords[0], coords[1] - 1
+    if direction == 1:
+        return coords[0] + 1, coords[1]
+    if direction == 2:
+        return coords[0], coords[1] + 1
+    if direction == 3:
+        return coords[0] - 1, coords[1]
+
+
 class MusicAndSounds:
     def __init__(self, volume_coeff=1, music_coeff=1):
+        """
+        initialization of class MusicAndSounds
+        :param volume_coeff: volume ratio
+        :param music_coeff: music ratio
+        """
         pygame.mixer.init()
         self.sound_path = 'Sounds/'
         self.music_path = 'Music/'
@@ -105,13 +138,20 @@ class MusicAndSounds:
         self.music_coeff = music_coeff
 
     def menu(self):
+        """
+        Start play music in menu.
+        :return: None
+        """
         self.stream.load(self.music_path + 'Gimn_punks_Red_plesen.mp3')
         self.stream.play()
         self.stream.set_volume(0.05 * self.music_coeff)
-        # fon = pygame.mixer.Sound(file='094__ACOne__C17_Hoppers.wav')
-        # fon.play()
 
     def game(self, dir_name='Default_playlist'):
+        """
+        Start play music in game.
+        :param dir_name: name of directory where is the playlist with music
+        :return: None
+        """
         self.stream.stop()
         game_fon = os.listdir(self.music_path + dir_name + '/')
         music_path = self.music_path + dir_name + '/'
@@ -124,24 +164,38 @@ class MusicAndSounds:
         self.stream.set_volume(0.05 * self.music_coeff)
 
     def artifact_get(self):
+        """
+        Function for play sound when hero pick up the artifact
+        :return: None
+        """
         sound = pygame.mixer.Sound(self.sound_path + 'Gulmen_Gde_zhe_etot_artefakt.wav')
         sound.play()
         sound.set_volume(0.1 * self.volume_coeff)
 
-    def ouch(self, who):
-        if who == 'hero':
+    def ouch(self, entity):
+        """
+        Function for play sound when hero/enemy get hit
+        :param entity: who got hit
+        :return: None
+        """
+        if entity == 'hero':
             sound = pygame.mixer.Sound(self.sound_path + 'Hero_ouch.wav')
             sound.set_volume(0.1 * self.volume_coeff)
-        elif who == 'enemy':
+        elif entity == 'enemy':
             sound = pygame.mixer.Sound(self.sound_path + 'Enemy_ouch.wav')
             sound.set_volume(0.05 * self.volume_coeff)
         sound.play()
 
-    def shoot(self, who):
-        if who == 'hero':
+    def shoot(self, entity):
+        """
+        Function for play sound when hero/enemy shoot
+        :param entity: who got hit
+        :return:
+        """
+        if entity == 'hero':
             sound = pygame.mixer.Sound(self.sound_path + 'Hero_throw.ogg')
             sound.set_volume(0.1 * self.volume_coeff)  # TODO пофиксить воспроизведение
-        elif who == 'enemy':
+        elif entity == 'enemy':
             sound = pygame.mixer.Sound(self.sound_path + 'Enemy_shoot.wav')
             sound.set_volume(0.01 * self.volume_coeff)
         sound.play()
@@ -150,11 +204,18 @@ class MusicAndSounds:
 class Button(pygame.sprite.Sprite):
     def __init__(self, screen, menu_button_group, x, y, image, selected_image, selected,
                  clicked_func):
+        """
+        initialization of class Button
+        :param screen: screen where this button locate
+        :param menu_button_group: group of menu buttons
+        :param image: Image that displays an unselected button
+        :param selected_image: Image that displays an selected button
+        :param selected: Parameters shows is this button selected from the start
+        :param clicked_func: what should the button do when it clicked
+        """
         super().__init__(menu_button_group)
         self.menu_button_group = menu_button_group
-        self.x, self.y = x, y
         self.screen = screen
-        self.a, self.b = image, selected_image
         self.not_selected_image = load_image(image)
         self.selected_image = load_image(selected_image)
         self.selected = selected
@@ -167,16 +228,22 @@ class Button(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(x, y)
 
     def check_mouse_pos(self, pos):
+        """
+        Function is checking a mouse position and if it collide the button rectangle image change
+        :param pos: mouse position
+        :return: None
+        """
         if self.rect.collidepoint(pos):
-            self.selected = True
-            self.__init__(self.screen, self.menu_button_group, self.x, self.y, self.a,
-                          self.b, self.selected, self.clicked_func)
+            self.image = self.selected_image
         else:
-            self.selected = False
-            self.__init__(self.screen, self.menu_button_group, self.x, self.y, self.a,
-                          self.b, self.selected, self.clicked_func)
+            self.image = self.not_selected_image
 
     def check_click(self, pos):
+        """
+        Function is checking a mouse position and called a function if button clicked
+        :param pos: mouse position
+        :return: None
+        """
         if self.rect.collidepoint(pos):
             if self.clicked_func:
                 self.clicked_func()
@@ -263,9 +330,20 @@ class Main:
         self.menu()
 
     def load_map(self, rooms_count):
+        """
+        Load a game map
+        :param rooms_count: How many rooms in one direction
+        :return: None
+        """
         self.game_map = Map(rooms_count, self)
 
     def load_room(self, direction):
+        """
+        Load the current room
+        # TODO Добавь описание
+        :param direction: direction of the room
+        :return: None
+        """
         self.all_sprites, self.tiles_group = pygame.sprite.Group(), pygame.sprite.Group()
         self.artifact_group, self.player_group = pygame.sprite.Group(), pygame.sprite.Group()
         self.bullet_group, self.enemy_group = pygame.sprite.Group(), pygame.sprite.Group()
@@ -275,6 +353,10 @@ class Main:
         self.game_map.update_doors()
 
     def menu(self):
+        """
+        Show a menu screen and starts playing music in the menu
+        :return: None
+        """
         if not self.game_in_process:
             pygame.mouse.set_visible(1)
             self.music.menu()
@@ -293,7 +375,7 @@ class Main:
             Button(self.screen, self.buttons_group, 250, 350, "Buttons/Autors_button.png",
                    "Buttons/Autors_selected_button.png", False, self.autors_show)
             Button(self.screen, self.buttons_group, 250, 450, "Buttons/Exit_button.png",
-                   "Buttons/Exit_selected_button.png", False, self.exit)
+                   "Buttons/Exit_selected_button.png", False, self.terminate)
         else:
             pygame.mouse.set_visible(1)
             self.music.menu()
@@ -309,7 +391,7 @@ class Main:
             Button(self.screen, self.buttons_group, 250, 250, "Buttons/Setting_button.png",
                    "Buttons/Setting_selected_button.png", False, self.settings)
             Button(self.screen, self.buttons_group, 250, 350, "Buttons/Exit_button.png",
-                   "Buttons/Exit_selected_button.png", False, self.exit)
+                   "Buttons/Exit_selected_button.png", False, self.terminate)
 
         while True:
             for event in pygame.event.get():
@@ -326,10 +408,11 @@ class Main:
             pygame.display.flip()
             self.clock.tick(FPS)
 
-    def exit(self):
-        self.terminate()
-
     def settings(self):
+        """
+        Show a settings screen
+        :return: None
+        """
         fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
         self.buttons_group = pygame.sprite.Group()
         self.screen.blit(fon, (0, 0))
@@ -377,6 +460,10 @@ class Main:
 
     # TODO переформатировать эти функции
     def change_settings_sound_high(self):
+        """
+        Function to increase sound
+        :return: None
+        """
         self.vol_set_image = (self.vol_set_image + 1) % len(self.volume_stages)
         self.music.volume_coeff = 1.5 * self.vol_set_image
         self.settings()
@@ -384,6 +471,10 @@ class Main:
 
     def change_settings_sound_low(self):
         # поправить
+        """
+        Function to reduce sound
+        :return: None
+        """
         self.vol_set_image = self.vol_set_image - 1 if self.vol_set_image > 0 else len(
             self.volume_stages)
         self.music.volume_coeff = 1.5 * self.vol_set_image
@@ -391,6 +482,10 @@ class Main:
         self.music.menu()
 
     def change_settings_music_high(self):
+        """
+        Function to increase music
+        :return: None
+        """
         self.mus_set_image = (self.mus_set_image + 1) % len(self.volume_stages)
         self.music.music_coeff = 1.5 * self.mus_set_image
         self.settings()
@@ -398,6 +493,10 @@ class Main:
 
     def change_settings_music_low(self):
         # поправить
+        """
+        Function to reduce sound
+        :return: None
+        """
         self.mus_set_image = self.mus_set_image - 1 if self.vol_set_image >= 0 else len(
             self.volume_stages)
         self.music.music_coeff = 1.5 * self.mus_set_image
@@ -405,10 +504,18 @@ class Main:
         self.music.menu()
 
     def change_settings_difficult(self):
+        """
+        Function for changing difficulty level
+        :return: None
+        """
         self.diff_image = (self.diff_image + 1) % len(self.diff_stages)
         self.settings()
 
     def start_game(self):
+        """
+        This function start the game process
+        :return: None
+        """
         self.game_in_process = True
         pygame.mouse.set_visible(0)
         self.music.game()
@@ -418,6 +525,10 @@ class Main:
         self.main_cycle()
 
     def autors_show(self):
+        """
+        Function to show a authors screen
+        :return: None
+        """
         fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
         text = "Урвачев Роман и Зотова Екатерина"
         self.buttons_group = pygame.sprite.Group()
@@ -428,8 +539,14 @@ class Main:
         Button(self.screen, self.buttons_group, 250, 300, "Buttons/Start_button.png",
                "Buttons/Start_selected_button.png", False,
                self.start_game)
+        Button(self.screen, self.buttons_group, 275, 425, "Buttons/Back_button.png",
+               "Buttons/Back_selected_button.png", False, self.menu)
 
     def show_stats(self):
+        """
+        Function to show hero stats during the game
+        :return: None
+        """
         stats = ["Статистика персонажа", "Скорость", "Множитель урона", "Урон",
                  "Скорость пули", "Время перезарядки", "ХП"]
         intro_text = []
@@ -450,6 +567,10 @@ class Main:
             self.screen.blit(string_rendered, intro_rect)
 
     def game_over(self):
+        """
+        Function to show the endgame screen
+        :return: None
+        """
         pygame.mouse.set_visible(1)
         self.buttons_group = pygame.sprite.Group()
         text = "Гамовер"
@@ -477,19 +598,30 @@ class Main:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     for elem in self.buttons_group:
                         elem.check_click(event.pos)
-
             self.buttons_group.draw(self.screen)
             pygame.display.flip()
             self.clock.tick(FPS)
 
     def terminate(self):
+        """
+        Close the game window
+        :return: None
+        """
         pygame.quit()
         sys.exit()
 
     def reset(self):
+        """
+        reinitialization of class Main
+        :return: None
+        """
         self.__init__()
 
     def main_cycle(self):
+        """
+        The main game cycle
+        :return: None
+        """
         while self.running:
             self.screen.fill((0, 0, 0))
             self.tiles_group.draw(self.screen)
@@ -573,6 +705,11 @@ class Main:
 
 class Room:
     def __init__(self, filename, main):
+        """
+        initialization he class Room
+        :param filename: name of the file from which the room map is loaded
+        :param main: parameter for accessing the main class
+        """
         self.main = main
         self.enemies_init, self.artifacts_init = True, True
         self.filename, self.exits, self.enemies, self.room_map, self.artifacts = filename, [], 0, [], 0
@@ -581,10 +718,20 @@ class Room:
         self.player, self.width, self.height = None, None, None
 
     def get_level(self, direction):
+        """
+        Selection of a room with the necessary direction
+        :param direction: the direction needed
+        :return: None
+        """
         self.player, self.width, self.height = self.generate_level(
             self.load_level(self.filename + ".txt"), direction)
 
     def load_level(self, filename):
+        """
+        Reform text file in map. Map type is list of lists where all objects are just sign
+        :param filename: the name of text file from what the level map load
+        :return: list of lists
+        """
         filename = "Levels/" + filename
         # читаем уровень, убирая символы перевода строки
         with open(filename, 'r') as mapFile:
@@ -592,11 +739,7 @@ class Room:
                 self.exits = list(map(int, line.split()))
                 break
             level_map = [line.strip() for line in mapFile]
-
-        # и подсчитываем максимальную длину
         max_width = max(map(len, level_map))
-
-        # дополняем каждую строку пустыми клетками ('.')
         for elem in list(map(lambda x: x.ljust(max_width, '.'), level_map)):
             self.room_map.append(
                 list(map(lambda x: 0 if x in ["#", "0", "^", "<", ">", "v", "R"] else -1, elem)))
@@ -604,6 +747,12 @@ class Room:
         return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
     def generate_level(self, level, player_direction):
+        """
+        Tranform signs in level into classes
+        :param level: level map
+        :param player_direction: direction of player
+        :return: player and his location in the rooms on the map
+        """
         new_player, x, y = None, None, None
         for y in range(len(level)):
             for x in range(len(level[y])):
@@ -619,7 +768,8 @@ class Room:
                     Tile('empty', x, y, False, False, False, self.main)
                 elif level[y][x] == 'E':
                     if self.enemies_init:
-                        Enemy(self, x, y, "Images/Entities/Enemies/Cop_", "Images/Entities/Enemies/Cop_shoot_",
+                        Enemy(self, x, y, "Images/Entities/Enemies/Cop_",
+                              "Images/Entities/Enemies/Cop_shoot_",
                               -1, self.main)
                         self.enemies += 1
                     Tile('empty', x, y, False, False, False, self.main)
@@ -660,6 +810,12 @@ class Room:
         return new_player, x, y
 
     def find_way(self, coords1, coords2):
+        """
+        Function for enemies to find the shortest way o player
+        :param coords1: coords enemy
+        :param coords2: coords player
+        :return:
+        """
         x1, y1 = coords1
         x2, y2 = coords2
         delta_x = [1, 0, -1, 0]
@@ -717,6 +873,11 @@ class Room:
 
 class Map:
     def __init__(self, rooms_count, main):
+        """
+        initialization of class Map
+        :param rooms_count: room in one direction
+        :param main: parameter for accessing the main class
+        """
         self.rooms_count = rooms_count
         self.rooms = []
         self.map = [[None] * (2 * rooms_count + 2) for _ in range(2 * rooms_count + 2)]
@@ -725,17 +886,11 @@ class Map:
         self.main = main
         self.generate_map()
 
-    def get_coords(self, coords, direction):
-        if direction == 0:
-            return coords[0], coords[1] - 1
-        if direction == 1:
-            return coords[0] + 1, coords[1]
-        if direction == 2:
-            return coords[0], coords[1] + 1
-        if direction == 3:
-            return coords[0] - 1, coords[1]
-
     def generate_map(self):
+        """
+        Generate stage map
+        :return: None
+        """
         x, y = self.current_x, self.current_y
         self.map[y][x] = Room("start", self.main)
         self.rooms.append(Room("start", self.main))
@@ -755,15 +910,15 @@ class Map:
             for i in range(self.rooms_count):
                 if i in range(1):
                     direction = main_direction
-                    x, y = self.get_coords((x, y), direction)
+                    x, y = get_coords((x, y), direction)
                 else:
                     direction = choice(self.rooms[-1].exits)
-                    coords = self.get_coords((x, y), direction)
+                    coords = get_coords((x, y), direction)
                     while (self.map[coords[1]][coords[0]] is not None or
                            (direction + 2) % 4 == main_direction):
                         direction = choice(self.rooms[-1].exits)
-                        coords = self.get_coords((x, y), direction)
-                    x, y = self.get_coords((x, y), direction)
+                        coords = get_coords((x, y), direction)
+                    x, y = get_coords((x, y), direction)
 
                 if i != self.rooms_count - 1:
                     room = Room(choice(self.main.room_types), self.main)
@@ -787,8 +942,15 @@ class Map:
             print()
 
     def room_check_neighbours(self, room, x, y):
+        """
+        Checking the neighbours room location
+        :param room: room for which you need to check neighbors
+        :param x: ordinat of this room
+        :param y: abciss of this room
+        :return: have this room the right neighbor
+        """
         for elem in room.exits:
-            coords = self.get_coords((x, y), elem)
+            coords = get_coords((x, y), elem)
             if not self.map[coords[1]][coords[0]]:
                 return True
         return False
@@ -797,6 +959,10 @@ class Map:
         return self.map[self.current_y][self.current_x]
 
     def check_door(self):
+        """
+        Check can there be a door in this direction
+        :return: True/False and direction
+        """
         current_room = self.map[self.current_y][self.current_x]
         if current_room.door_up is not None:
             if pygame.sprite.collide_rect_ratio(0.5)(current_room.player, current_room.door_up):
@@ -821,6 +987,10 @@ class Map:
         return False, 0
 
     def update_doors(self):
+        """
+        Change the door images if it needs
+        :return: None
+        """
         current_room = self.map[self.current_y][self.current_x]
         room_up = self.map[self.current_y - 1][self.current_x]
         room_right = self.map[self.current_y][self.current_x + 1]
@@ -906,6 +1076,16 @@ class Map:
 
 class Tile(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y, block_player, block_bullets, damage_player, main):
+        """
+        Initialization of class Tile
+        :param tile_type: type of tile
+        :param pos_x: tile position x
+        :param pos_y: tile position y
+        :param block_player: must this tile block player motion
+        :param block_bullets: must this tile block bullet motion
+        :param damage_player: must tis tile damage player
+        :param main: parameter for accessing the main class
+        """
         super().__init__(main.tiles_group, main.all_sprites)
         self.image = main.tile_images[tile_type]
         self.rect = self.image.get_rect().move(main.tile_width * pos_x, main.tile_height * pos_y)
@@ -916,6 +1096,16 @@ class Tile(pygame.sprite.Sprite):
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, main):
+        """
+        Initialization of class Enemy
+        :param room: parameter for accessing the room class
+        :param pos_x: Enemy position x
+        :param pos_y: Enemy position y
+        :param image: file which plays when entity run
+        :param shooting_image: file which plays when entity shoot
+        :param direction: direction where entity look after spawn
+        :param main: parameter for accessing the main class
+        """
         super().__init__(main.enemy_group, main.all_sprites)
         self.running = None
         self.reversed = None
@@ -974,6 +1164,12 @@ class Enemy(pygame.sprite.Sprite):
         self.running = True
 
     def change_image(self, image_group, direction):
+        """
+        change the image in the right direction
+        :param image_group:
+        :param direction:
+        :return: None
+        """
         if self.image_gif != image_group[direction]:
             self.running, self.reversed, self.image_gif = True, False, image_group[direction]
             self.frames, self.startpoint, self.cur, = [], 0, 0
@@ -984,6 +1180,11 @@ class Enemy(pygame.sprite.Sprite):
             self.direction = direction
 
     def shoot(self, direction):
+        """
+        Function for the enemy to shoot
+        :param direction: where enemy must shoot
+        :return: None
+        """
         self.main.music.shoot('enemy')
         self.change_image(self.shooting_images, direction)
         if self.count % self.main.shooting_tick_delay == 0:
@@ -993,6 +1194,10 @@ class Enemy(pygame.sprite.Sprite):
         self.count += 1
 
     def check_player_coords(self):
+        """
+        Function which check the player position
+        :return: can enemy shoot or not
+        """
         if (self.main.player.rect.x - 10 <= self.rect.x <= self.main.player.rect.x + 10 and
                 self.main.player.rect.y <= self.rect.y):
             self.shoot(0)
@@ -1015,6 +1220,10 @@ class Enemy(pygame.sprite.Sprite):
             self.change_image(self.images, -1)
 
     def check_collision(self):
+        """
+        Check collision between enemy and other subjects
+        :return: None
+        """
         if pygame.sprite.spritecollideany(self, self.main.bullet_group, False):
             if pygame.sprite.spritecollideany(self, self.main.bullet_group,
                                               False).sprites_to_damage == self.main.enemy_group:
@@ -1031,6 +1240,10 @@ class Enemy(pygame.sprite.Sprite):
         #     print('Go away!')
 
     def move(self):
+        """
+        Function for move enemiies
+        :return: None
+        """
         if self.room.find_way(self.get_pos(self.rect.x, self.rect.y),
                               self.get_pos(self.room.player.rect.x, self.room.player.rect.y)):
             x1, y1 = self.room.find_way(self.get_pos(self.rect.x, self.rect.y),
@@ -1097,26 +1310,23 @@ class Enemy(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, main,
                  parameters):
+        """
+        Initialization of class Player
+        :param room: parameter for accessing the room class
+        :param pos_x: Player position x
+        :param pos_y: Player position y
+        :param image: file which plays when entity run
+        :param shooting_image: file which plays when entity shoot
+        :param direction: direction where entity look after spawn
+        :param main: parameter for accessing the main class
+        """
         super().__init__(main.player_group, main.all_sprites)
-        self.running = None
-        self.running = None
-        self.reversed = None
-        self.image_gif = None
-        self.frames = None
-        self.startpoint = None
-        self.ptime = None
-        self.cur = None
-        self.breakpoint = None
-        self.image = None
-        self.main = main
-        self.room = room
-        self.direction = direction
-        # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
-        self.player_parameters = parameters
-        self.images = {0: Image.open(image + "run_up.gif"),
-                       1: Image.open(image + "run_right.gif"),
-                       2: Image.open(image + "run_down.gif"),
-                       3: Image.open(image + "run_left.gif"),
+        self.running, self.reversed, self.image_gif, self.frames = None, None, None, None
+        self.startpoint, self.ptime, self.breakpoint, self.image = None, None, None, None
+        self.cur, self.main, self.room, self.direction, \
+        self.player_parameters = None, main, room, direction, parameters
+        self.images = {0: Image.open(image + "run_up.gif"), 1: Image.open(image + "run_right.gif"),
+                       2: Image.open(image + "run_down.gif"), 3: Image.open(image + "run_left.gif"),
                        -1: Image.open(image + "stay.gif")}
         self.shooting_images = {0: Image.open(shooting_image + "up.gif"),
                                 1: Image.open(shooting_image + "right.gif"),
@@ -1162,6 +1372,10 @@ class Player(pygame.sprite.Sprite):
             self.change_image(self.images, direction)
 
     def check_collision(self):
+        """
+        Check collision between player and other subjects
+        :return: None
+        """
         if pygame.sprite.spritecollideany(self, self.main.bullet_group, False):
             if pygame.sprite.spritecollideany(self, self.main.bullet_group,
                                               False).sprites_to_damage == self.main.player_group:
@@ -1172,6 +1386,10 @@ class Player(pygame.sprite.Sprite):
                 self.main.music.ouch('hero')
 
     def move(self, direction):
+        """
+        Function for move player
+        :return: None
+        """
         self.change_direction(direction)
         player_speed = self.player_parameters[0]
         if direction == 0:
@@ -1212,6 +1430,11 @@ class Player(pygame.sprite.Sprite):
                     self.rect.x += player_speed
 
     def shoot(self, direction):
+        """
+        Function for the player to shoot
+        :param direction: where player must shoot
+        :return: None
+        """
         self.change_image(self.shooting_images, direction)
         Bullet(self.rect.x + self.main.player_size_x // 2 - 5,
                self.rect.y + self.main.player_size_y // 2 - 5,
@@ -1222,15 +1445,22 @@ class Player(pygame.sprite.Sprite):
     def attack(self):
         return self.player_parameters[1] * self.player_parameters[2]
 
-    def show_stats(self):
-        pass
-
     def get_pos(self, x, y):
         return x // 50, y // 50
 
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, image, direction, bullet_speed, sprites_to_damage, main):
+        """
+        Initializing of class Bullet
+        :param x: Bullet position x
+        :param y: Bullet position y
+        :param image: file which plays when entity run
+        :param direction: direction where entity look after spawn
+        :param bullet_speed: bullet speed
+        :param sprites_to_damage: which sprites need to damage
+        :param main: parameter for accessing the main class
+        """
         super().__init__(main.bullet_group, main.all_sprites)
         self.image = None
         self.main = main
@@ -1258,12 +1488,20 @@ class Bullet(pygame.sprite.Sprite):
                 self.walls.append(elem)
 
     def check_collision(self):
+        """
+        Check collision between bullet and other subjects
+        :return: None
+        """
         if pygame.sprite.spritecollideany(self, self.walls):
             self.kill()
         if pygame.sprite.spritecollideany(self, self.sprites_to_damage):
             self.kill()
 
     def move(self):
+        """
+        Function for moving bullet
+        :return: None
+        """
         self.check_collision()
         if self.direction == 0:
             self.rect.y -= self.bullet_speed
@@ -1310,6 +1548,12 @@ class Bullet(pygame.sprite.Sprite):
 
 class Artifact(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, main):
+        """
+        initialization of class Artifact
+        :param pos_x: Artifact's position x
+        :param pos_y: Artifact's position y
+        :param main: parameter for accessing the main class
+        """
         super().__init__(main.artifact_group)
         self.main = main
         self.art_name = choice(list(self.main.art_parameters.keys()))
@@ -1321,6 +1565,10 @@ class Artifact(pygame.sprite.Sprite):
                                                self.main.tile_height * pos_y + 10)
 
     def check_collision(self):
+        """
+        Check collision between artifact and other subjects
+        :return: None
+        """
         if pygame.sprite.spritecollide(self, self.main.player_group, False):
             print(self.main.player.player_parameters)
             player_parameters = self.main.player.player_parameters
@@ -1330,7 +1578,8 @@ class Artifact(pygame.sprite.Sprite):
                     player_parameters[i] += int(self.parameters[i] * player_parameters[i])
                 else:
                     player_parameters[i] = 1
-            player_parameters[2] += (self.parameters[2] * player_parameters[2] * player_parameters[1])
+            player_parameters[2] += (
+                    self.parameters[2] * player_parameters[2] * player_parameters[1])
             if self.parameters[1] > player_parameters[1]:
                 player_parameters[1] = self.parameters[1]
             player_parameters[5] += self.parameters[5]
