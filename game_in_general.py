@@ -199,7 +199,6 @@ class Main:
                                      'hard_diff_selected_button.png']
         self.diff_image = 1
         self.cell_size, self.player_size_x, self.player_size_y = 50, 50, 50
-
         self.tile_images = {
             'wall': pygame.transform.scale(load_image('Tiles/wall.png'),
                                            (self.cell_size, self.cell_size)),
@@ -224,8 +223,9 @@ class Main:
         self.room_types = ["circle", "circle_in_square", "death_road", "diagonal", "lines", "mexico",
                            "square_trap", "trapezoid"]
         self.running = True
-
-        # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\ change_player
+        # player_hp\boss_hp\enemy_hp\enemy_shoot_speed\enemy_speed
+        self.diff_parameters = [[12, 100, 25, 60, 1], [6, 200, 50, 10, 2], [6, 350, 65, 5, 4]]
+        # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\change_player
         self.art_parameters = {
             'meat': (load_image('Artifacts/meat.png', -1), (0, 0, 1, 0, 0, 1, False)),
             'sandwich': (
@@ -249,10 +249,8 @@ class Main:
             'eye': (
                 load_image('Artifacts/eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
 
-        self.player_parameters = [5, 1, 3.5, 5, 21, 6]
-
         self.counter = 0
-        self.shooting_tick_delay = 10
+        self.shooting_tick_delay = self.diff_parameters[self.diff_image][3]
 
         self.all_sprites, self.tiles_group, self.artifact_group = None, None, None
         self.player_group, self.bullet_group, self.enemy_group = None, None, None
@@ -414,7 +412,7 @@ class Main:
         self.game_in_process = True
         pygame.mouse.set_visible(0)
         self.music.game()
-        self.player_parameters = [5, 1, 3.5, 5, 21, 6]
+        self.player_parameters = [5, 1, 3.5, 5, 21, self.diff_parameters[self.diff_image][0]]
         self.load_map(5)
         self.load_room(0)
         self.main_cycle()
@@ -426,8 +424,8 @@ class Main:
         self.screen.blit(fon, (0, 0))
         font = pygame.font.Font(None, 30)
         text_rendered = font.render(text, 1, pygame.Color('black'))
-        self.screen.blit(text_rendered, (250, 100))
-        Button(self.screen, self.buttons_group, 250, 200, "Buttons/Start_button.png",
+        self.screen.blit(text_rendered, (250, 250))
+        Button(self.screen, self.buttons_group, 250, 300, "Buttons/Start_button.png",
                "Buttons/Start_selected_button.png", False,
                self.start_game)
 
@@ -929,14 +927,14 @@ class Enemy(pygame.sprite.Sprite):
         self.breakpoint = None
         self.image = None
         self.main = main
-        self.hp = 50
+        self.hp = main.diff_parameters[main.diff_image][2]
         self.room = room
         self.map = Map
         self.direction = direction
         self.x = pos_x
         self.y = pos_y
         self.count = 0
-        self.speed = 2
+        self.speed = main.diff_parameters[main.diff_image][4]
         self.image_gif = None
         self.images = {0: Image.open(image + "run_up.gif"),
                        1: Image.open(image + "run_right.gif"),
