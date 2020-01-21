@@ -306,7 +306,7 @@ class Main:
             'amulet': (
                 load_image('Artifacts/amulet.png', -1), (0, 0, 1, 0, 0, 0, False)),
             'dead_cat': (
-                load_image('Artifacts/dead_cat.png', -1), (0, 1.5, 1, 0, 0, 0, True)),
+                load_image('Artifacts/dead_cat.png', -1), (0, 1.5, 1, 0, 0, 0, False)),
             'mineral_water': (
                 load_image('Artifacts/mineral_water.png', -1),
                 (0, 0, 0.5, 0, 0, 0, False)),
@@ -314,7 +314,8 @@ class Main:
                 load_image('Artifacts/good_morning.png', -1),
                 (0, 0, 0.5, 0, -0.7, 1, False)),
             'eye': (
-                load_image('Artifacts/eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False))}
+                load_image('Artifacts/eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False)),
+            'prize': (load_image('Artifacts/Winner.png', -1), (0, 0, 0, 0, 0, 0, True))}
 
         self.counter = 0
         self.shooting_tick_delay = self.diff_parameters[self.diff_image][3]
@@ -404,6 +405,33 @@ class Main:
                     for elem in self.buttons_group:
                         elem.check_click(event.pos)
 
+            self.buttons_group.draw(self.screen)
+            pygame.display.flip()
+            self.clock.tick(FPS)
+
+    def congratulations(self):
+        pygame.mouse.set_visible(1)
+        fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
+        self.buttons_group = pygame.sprite.Group()
+        self.screen.blit(fon, (0, 0))
+        Button(self.screen, self.buttons_group, 250, 350, "Buttons/Start_button.png",
+               "Buttons/Start_selected_button.png", False,
+               self.start_game)
+        Button(self.screen, self.buttons_group, 350, 175, "Artifacts/Winner.png",
+               "Artifacts/Winner.png", False,
+               self.start_game)
+        Button(self.screen, self.buttons_group, 350, 425, "Buttons/Back_button.png",
+               "Buttons/Back_selected_button.png", False, self.menu)
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.terminate()
+                if event.type == pygame.MOUSEMOTION:
+                    for button in self.buttons_group:
+                        button.check_mouse_pos(event.pos)
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    for elem in self.buttons_group:
+                        elem.check_click(event.pos)
             self.buttons_group.draw(self.screen)
             pygame.display.flip()
             self.clock.tick(FPS)
@@ -586,7 +614,7 @@ class Main:
         Button(self.screen, self.buttons_group, 250, 350, "Buttons/Setting_button.png",
                "Buttons/Setting_selected_button.png", False, self.settings)
         Button(self.screen, self.buttons_group, 250, 450, "Buttons/Exit_button.png",
-               "Buttons/Exit_selected_button.png", False, self.exit)
+               "Buttons/Exit_selected_button.png", False, self.terminate)
 
         while True:
             for event in pygame.event.get():
@@ -712,7 +740,8 @@ class Room:
         """
         self.main = main
         self.enemies_init, self.artifacts_init = True, True
-        self.filename, self.exits, self.enemies, self.room_map, self.artifacts = filename, [], 0, [], 0
+        self.filename, self.exits, self.enemies, self.room_map = filename, [], 0, []
+        self.artifacts, self.boss = 0, False
         self.door_up, self.door_right, self.door_down, self.door_left = None, None, None, None
         self.load_level(self.filename + ".txt")
         self.player, self.width, self.height = None, None, None
@@ -772,6 +801,13 @@ class Room:
                               "Images/Entities/Enemies/Cop_shoot_",
                               -1, self.main)
                         self.enemies += 1
+                    Tile('empty', x, y, False, False, False, self.main)
+                elif level[y][x] == 'B':
+                    if self.enemies_init:
+                        Boss(self, x, y, 'Images/Entities/Boss/boss_',
+                             'Images/Entities/Boss/boss_shoot_', -1, self.main)
+                        self.enemies += 1
+                        self.boss = True
                     Tile('empty', x, y, False, False, False, self.main)
                 if level[y][x] == 'R':
                     Tile('rock', x, y, True, True, False, self.main)
@@ -1072,6 +1108,12 @@ class Map:
                 current_room.door_left.image = self.main.tile_images[
                     'door_left_closed']
                 current_room.door_left.block_player = True
+        if current_room.boss:
+            print('Yeah')
+        if current_room.enemies == 0 and current_room.boss:
+            Artifact(250, 350, self.main, winner=True)
+            self.main.congratulations()
+        print(current_room.enemies)
 
 
 class Tile(pygame.sprite.Sprite):
@@ -1097,33 +1139,21 @@ class Tile(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, main):
         """
-        Initialization of class Enemy
-        :param room: parameter for accessing the room class
-        :param pos_x: Enemy position x
-        :param pos_y: Enemy position y
-        :param image: file which plays when entity run
-        :param shooting_image: file which plays when entity shoot
-        :param direction: direction where entity look after spawn
-        :param main: parameter for accessing the main class
-        """
+                Initialization of class Enemy
+                :param room: parameter for accessing the room class
+                :param pos_x: Enemy position x
+                :param pos_y: Enemy position y
+                :param image: file which plays when entity run
+                :param shooting_image: file which plays when entity shoot
+                :param direction: direction where entity look after spawn
+                :param main: parameter for accessing the main class
+                """
         super().__init__(main.enemy_group, main.all_sprites)
-        self.running = None
-        self.reversed = None
-        self.image_gif = None
-        self.frames = None
-        self.startpoint = None
-        self.ptime = None
-        self.cur = None
-        self.breakpoint = None
-        self.image = None
-        self.main = main
+        self.running, self.reversed, self.image_gif, self.frames = None, None, None, None
+        self.startpoint, self.ptime, self.breakpoint, self.image = None, None, None, None
+        self.image, self.main, self.room, self.map, self.x = None, main, room, Map, pos_x
+        self.direction, self.y, self.count = direction, pos_y, 0
         self.hp = main.diff_parameters[main.diff_image][2]
-        self.room = room
-        self.map = Map
-        self.direction = direction
-        self.x = pos_x
-        self.y = pos_y
-        self.count = 0
         self.speed = main.diff_parameters[main.diff_image][4]
         self.image_gif = None
         self.images = {0: Image.open(image + "run_up.gif"),
@@ -1305,6 +1335,40 @@ class Enemy(pygame.sprite.Sprite):
 
     def get_pos(self, x, y):
         return x // 50, y // 50
+
+
+class Boss(Enemy):
+    def __init__(self, room, pos_x, pos_y, image, shooting_image, direction, main):
+        """
+                Initialization of class Enemy
+                :param room: parameter for accessing the room class
+                :param pos_x: Enemy position x
+                :param pos_y: Enemy position y
+                :param image: file which plays when entity run
+                :param shooting_image: file which plays when entity shoot
+                :param direction: direction where entity look after spawn
+                :param main: parameter for accessing the main class
+                """
+        super().__init__(room, pos_x, pos_y, image, shooting_image, direction, main)
+        self.running, self.reversed, self.image_gif, self.frames = None, None, None, None
+        self.startpoint, self.ptime, self.breakpoint, self.image = None, None, None, None
+        self.image, self.main, self.room, self.map, self.x = None, main, room, Map, pos_x
+        self.direction, self.y, self.count = direction, pos_y, 0
+        self.hp = main.diff_parameters[main.diff_image][1]
+        self.speed = main.diff_parameters[main.diff_image][4]
+        self.image_gif = None
+        self.images = {0: Image.open(image + "run_up.gif"),
+                       1: Image.open(image + "run_right.gif"),
+                       2: Image.open(image + "run_down.gif"),
+                       3: Image.open(image + "run_left.gif"),
+                       -1: Image.open(image + "stay.gif")}
+        self.shooting_images = {0: Image.open(shooting_image + "up.gif"),
+                                1: Image.open(shooting_image + "right.gif"),
+                                2: Image.open(shooting_image + "down.gif"),
+                                3: Image.open(shooting_image + "left.gif")}
+        self.change_image(self.images, direction)
+        self.rect = self.image.get_rect().move(self.main.player_size_x * pos_x,
+                                               self.main.player_size_y * pos_y)
 
 
 class Player(pygame.sprite.Sprite):
@@ -1547,7 +1611,7 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class Artifact(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, main):
+    def __init__(self, pos_x, pos_y, main, winner=False):
         """
         initialization of class Artifact
         :param pos_x: Artifact's position x
@@ -1556,7 +1620,10 @@ class Artifact(pygame.sprite.Sprite):
         """
         super().__init__(main.artifact_group)
         self.main = main
-        self.art_name = choice(list(self.main.art_parameters.keys()))
+        if not winner:
+            self.art_name = choice(list(self.main.art_parameters.keys())[:-1])
+        else:
+            self.art_name = 'prize'
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.parameters = self.main.art_parameters[self.art_name][1]
@@ -1570,7 +1637,6 @@ class Artifact(pygame.sprite.Sprite):
         :return: None
         """
         if pygame.sprite.spritecollide(self, self.main.player_group, False):
-            print(self.main.player.player_parameters)
             player_parameters = self.main.player.player_parameters
             self.main.music.artifact_get()
             for i in (0, 4, 3):
@@ -1588,8 +1654,8 @@ class Artifact(pygame.sprite.Sprite):
             self.main.room.artifacts -= 1
             if self.main.room.artifacts == 0:
                 self.main.game_map.update_doors()
-
-            print(player_parameters)
+            if self.parameters[-1] == True:
+                self.main.congratulations()
         if pygame.sprite.spritecollide(self, self.main.bullet_group, False):
             print('Ouch!')
 
