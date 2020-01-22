@@ -484,7 +484,6 @@ class Main:
         # Прибавить\убавить музыку
         # Сложность (для детей\средний\для профи)
         # Плейлист (имя папки с музыкой в папке Sounds, где все файлы в формате mp3, wav или ogg)
-        pass
 
     # TODO переформатировать эти функции
     def change_settings_sound_high(self):
@@ -645,6 +644,44 @@ class Main:
         """
         self.__init__()
 
+    def draw_map(self, numb):
+        if numb == 3:
+            room_x, room_y = self.game_map.current_x, self.game_map.current_y - 1
+            for y in range(numb):
+                count = 0
+                for x in range(-1, 2):
+                    room = self.game_map.map[room_y][room_x + x]
+                    if room:
+                        pygame.draw.rect(self.screen, pygame.Color('black'), (
+                            x * 40 + 700, y * 40 + 50,
+                            40, 40), 1)
+                    if room is not None and (room.enemies_init or room.artifacts_init):
+                        pygame.draw.rect(self.screen, pygame.Color('black'), (
+                            x * 40 + 700, y * 40 + 50,
+                            40, 40), 1)
+                    if room == self.game_map.map[self.game_map.current_y][self.game_map.current_x]:
+                        pygame.draw.rect(self.screen, pygame.Color('red'), (
+                            x * 40 + 700, y * 40 + 50,
+                            40, 40), 0)
+                    count += 1
+                room_y += 1
+        else:
+            room_x, room_y = self.game_map.current_x, self.game_map.current_y - 2
+            for y in range(numb):
+                count = 0
+                for x in range(-1, 2):
+                    room = self.game_map.map[room_y][room_x + x]
+                    if room:
+                        pygame.draw.rect(self.screen, pygame.Color('black'), (
+                            x * 40 + 650, y * 40 + 50,
+                            40, 40), 1)
+                    if room == self.game_map.map[self.game_map.current_y][self.game_map.current_x]:
+                        pygame.draw.rect(self.screen, pygame.Color('red'), (
+                            x * 40 + 650, y * 40 + 50,
+                            40, 40), 0)
+                    count += 1
+                room_y += 1
+
     def main_cycle(self):
         """
         The main game cycle
@@ -676,6 +713,10 @@ class Main:
             if keys[pygame.K_ESCAPE] == 1:
                 self.game_in_process = True
                 self.menu()
+            if keys[pygame.K_LSHIFT] == 1:
+                self.draw_map(5)
+            else:
+                self.draw_map(3)
             if keys[pygame.K_r] == 1:
                 self.start_game()
             if keys[pygame.K_w] == 1:
@@ -1108,10 +1149,8 @@ class Map:
                 current_room.door_left.image = self.main.tile_images[
                     'door_left_closed']
                 current_room.door_left.block_player = True
-        if current_room.boss:
-            print('Yeah')
         if current_room.enemies == 0 and current_room.boss:
-            Artifact(250, 350, self.main, winner=True)
+            Artifact(8, 6, self.main, winner=True)
             self.main.congratulations()
         print(current_room.enemies)
 
