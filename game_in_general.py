@@ -989,7 +989,7 @@ class Map:
         for main_direction in directions:
             x, y = self.current_x, self.current_y
             for i in range(self.rooms_count):
-                if i in range(3):
+                if i in range(2):
                     direction = main_direction
                     x, y = get_coords((x, y), direction)
                 else:
@@ -1006,11 +1006,12 @@ class Map:
                     while (direction + 2) % 4 not in room.exits or not self.room_check_neighbours(
                             room, x, y):
                         room = Room(choice(self.main.room_types), self.main)
-                    self.map[y][x] = room
-                    self.rooms.append(room)
                 else:
-                    if direction in special_rooms_directions:
-                        self.map[y][x] = Room(special_rooms_directions[direction], self.main)
+                    if main_direction in special_rooms_directions:
+                        room = Room(special_rooms_directions[main_direction], self.main)
+
+                self.map[y][x] = room
+                self.rooms.append(room)
 
         self.update_doors()
         for elem in self.map:
