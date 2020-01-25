@@ -658,7 +658,7 @@ class Main:
                     if room is not None and (room.enemies_init or room.artifacts_init):
                         pygame.draw.rect(self.screen, pygame.Color('black'), (
                             x * 40 + 700, y * 40 + 50,
-                            40, 40), 1)
+                            40, 40), 0)
                     if room == self.game_map.map[self.game_map.current_y][self.game_map.current_x]:
                         pygame.draw.rect(self.screen, pygame.Color('red'), (
                             x * 40 + 700, y * 40 + 50,
@@ -677,6 +677,10 @@ class Main:
                             40, 40), 1)
                     if room == self.game_map.map[self.game_map.current_y][self.game_map.current_x]:
                         pygame.draw.rect(self.screen, pygame.Color('red'), (
+                            x * 40 + 650, y * 40 + 50,
+                            40, 40), 0)
+                    if room is not None and (room.enemies_init or room.artifacts_init):
+                        pygame.draw.rect(self.screen, pygame.Color('black'), (
                             x * 40 + 650, y * 40 + 50,
                             40, 40), 0)
                     count += 1
@@ -985,7 +989,7 @@ class Map:
         for main_direction in directions:
             x, y = self.current_x, self.current_y
             for i in range(self.rooms_count):
-                if i in range(1):
+                if i in range(3):
                     direction = main_direction
                     x, y = get_coords((x, y), direction)
                 else:
@@ -1002,7 +1006,6 @@ class Map:
                     while (direction + 2) % 4 not in room.exits or not self.room_check_neighbours(
                             room, x, y):
                         room = Room(choice(self.main.room_types), self.main)
-
                     self.map[y][x] = room
                     self.rooms.append(room)
                 else:
@@ -1152,7 +1155,6 @@ class Map:
         if current_room.enemies == 0 and current_room.boss:
             Artifact(8, 6, self.main, winner=True)
             self.main.congratulations()
-        print(current_room.enemies)
 
 
 class Tile(pygame.sprite.Sprite):
