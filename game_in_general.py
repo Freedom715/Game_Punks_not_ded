@@ -288,7 +288,8 @@ class Main:
         self.tile_width, self.tile_height = 50, 50
 
         self.room_types = ["circle", "circle_in_square", "death_road", "diagonal", "lines", "mexico",
-                           "square_trap", "trapezoid"]
+                           "square_trap", "trapezoid", 'loner', 'tiger', 'punks_and_rocks', 'house',
+                           'rocks', 'pyramid', 'lizard', 'romb', 'boloto']
         self.running = True
         # player_hp\boss_hp\enemy_hp\enemy_shoot_speed\enemy_speed
         self.diff_parameters = [[12, 100, 25, 60, 1], [6, 200, 50, 10, 2], [6, 350, 65, 5, 4]]
@@ -849,7 +850,7 @@ class Room:
                     Tile('empty', x, y, False, False, False, self.main)
                 elif level[y][x] == 'B':
                     if self.enemies_init:
-                        Boss(self, x, y, 'Images/Entities/Boss/boss_',
+                        Boss(self, x, y, 'Images/Entities/Boss/boss_r_',
                              'Images/Entities/Boss/boss_shoot_', -1, self.main)
                         self.enemies += 1
                         self.boss = True
@@ -979,7 +980,7 @@ class Map:
         special_rooms_directions = {}
 
         directions = [0, 1, 2, 3]
-        for elem in ["boss_room", "artifact_room", "shop"]:
+        for elem in ['boss_room', "artifact_room", "shop"]:
             direction = choice(directions)
             special_rooms_directions[direction] = elem
             directions.remove(direction)
@@ -1154,8 +1155,8 @@ class Map:
                     'door_left_closed']
                 current_room.door_left.block_player = True
         if current_room.enemies == 0 and current_room.boss:
-            Artifact(8, 6, self.main, winner=True)
-            self.main.congratulations()
+            Artifact(7, 5, self.main, winner=True)
+            #self.main.congratulations()
 
 
 class Tile(pygame.sprite.Sprite):
