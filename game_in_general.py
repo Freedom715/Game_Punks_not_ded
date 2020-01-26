@@ -503,8 +503,8 @@ class Main:
         Function to reduce sound
         :return: None
         """
-        self.vol_set_image = self.vol_set_image - 1 if self.vol_set_image > 0 else len(
-            self.volume_stages)
+        self.vol_set_image = self.vol_set_image - 1 if self.vol_set_image >= 0 else len(
+            self.volume_stages) - 1
         self.music.volume_coeff = 1.5 * self.vol_set_image
         self.settings()
         self.music.menu()
@@ -525,8 +525,8 @@ class Main:
         Function to reduce sound
         :return: None
         """
-        self.mus_set_image = self.mus_set_image - 1 if self.vol_set_image >= 0 else len(
-            self.volume_stages)
+        self.mus_set_image = self.mus_set_image - 1 if self.mus_set_image >= 0 else len(
+            self.volume_stages) - 1
         self.music.music_coeff = 1.5 * self.mus_set_image
         self.settings()
         self.music.menu()
@@ -660,7 +660,8 @@ class Main:
                         pygame.draw.rect(self.screen, pygame.Color('black'), (
                             x * 40 + 700, y * 40 + 50,
                             40, 40), 0)
-                    if room == self.game_map.map[self.game_map.current_y][self.game_map.current_x]:
+                    if room == self.game_map.map[self.game_map.current_y][self.game_map.current_x] \
+                            and room.player:
                         pygame.draw.rect(self.screen, pygame.Color('red'), (
                             x * 40 + 700, y * 40 + 50,
                             40, 40), 0)
@@ -1155,7 +1156,7 @@ class Map:
                     'door_left_closed']
                 current_room.door_left.block_player = True
         if current_room.enemies == 0 and current_room.boss:
-            Artifact(7, 5, self.main, winner=True)
+            Artifact(6, 4, self.main, winner=True)
             #self.main.congratulations()
 
 
