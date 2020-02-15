@@ -279,6 +279,7 @@ class Main:
         self.selected_diff_stages = ['easy_diff_selected_button.png',
                                      'medium_diff_selected_button.png',
                                      'hard_diff_selected_button.png']
+        self.level_count = 0
         self.diff_image = 1
         self.cell_size, self.player_size_x, self.player_size_y = 50, 50, 50
         self.tile_images = {
@@ -307,7 +308,8 @@ class Main:
                            'rocks', 'pyramid', 'lizard', 'romb', 'boloto']
         self.running = True
         # player_hp\boss_hp\enemy_hp\enemy_shoot_speed\enemy_speed
-        self.diff_parameters = [[12, 100, 25, 60, 1], [6, 200, 50, 10, 2], [6, 350, 65, 5, 4]]
+        self.diff_parameters = [[12, 100, 25, 60, 1, 3], [6, 200, 50, 10, 2, 6],
+                                [6, 350, 65, 5, 4, 6]]
         # player_speed\player_damage_coeff\player_damage\bullet_speed\shooting_ticks\hp\change_player
         self.art_parameters = {
             'meat': (load_image('Artifacts/meat.png', -1), (0, 0, 1, 0, 0, 1, False)),
@@ -331,7 +333,8 @@ class Main:
                 (0, 0, 0.5, 0, -0.7, 1, False)),
             'eye': (
                 load_image('Artifacts/eye.png', -1), (0, 2, 4, -1.5, 1.25, 0, False)),
-            'prize': (load_image('Artifacts/Winner.png', -1), (0, 0, 0, 0, 0, 0, True))}
+            'prize': (load_image('Artifacts/Winner.png', -1), (0, 0, 0, 0, 0, 0, True)),
+            'level_exit': (load_image('Tiles/level_exit.png', -1), (0, 0, 0, 0, 0, 0, True))}
 
         self.counter = 0
         self.shooting_tick_delay = self.diff_parameters[self.diff_image][3]
@@ -413,6 +416,7 @@ class Main:
         fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
         self.buttons_group = pygame.sprite.Group()
         self.screen.blit(fon, (0, 0))
+        self.level_count = 0
         Button(self.screen, self.buttons_group, 250, 350, "Buttons/Start_button.png",
                "Buttons/Start_selected_button.png", False,
                self.start_game)
@@ -465,13 +469,13 @@ class Main:
                'Buttons/' + self.volume_stages[self.mus_set_image],
                'Buttons/' + self.volume_stages[self.mus_set_image], False, None)
         # Difficulty
-        Button(self.screen, self.buttons_group, 450, 375,
-               'Buttons/' + self.diff_stages[self.diff_image],
-               'Buttons/' + self.selected_diff_stages[self.diff_image], False,
-               self.change_settings_difficult)
         if not self.game_in_process:
             Button(self.screen, self.buttons_group, 275, 425, "Buttons/Back_button.png",
                    "Buttons/Back_selected_button.png", False, self.menu)
+            Button(self.screen, self.buttons_group, 450, 375,
+                   'Buttons/' + self.diff_stages[self.diff_image],
+                   'Buttons/' + self.selected_diff_stages[self.diff_image], False,
+                   self.change_settings_difficult)
         else:
             Button(self.screen, self.buttons_group, 250, 450, "Buttons/Continue_button.png",
                    "Buttons/Continue_selected_button.png", False,
@@ -494,7 +498,6 @@ class Main:
         self.vol_set_image = (self.vol_set_image + 1) % len(self.volume_stages)
         self.music.volume_coeff = 1.5 * self.vol_set_image
         self.settings()
-        self.music.menu()
 
     def change_settings_sound_low(self):
         # поправить
@@ -504,17 +507,19 @@ class Main:
         """
         self.vol_set_image = self.vol_set_image - 1 if self.vol_set_image >= 0 else len(
             self.volume_stages) - 1
-        self.music.volume_coeff = 1.5 * self.vol_set_image
+        self.music.volume_coeff = 0.5 * self.vol_set_image
         self.settings()
-        self.music.menu()
 
     def change_settings_music_high(self):
         """
         Function to increase music
         :return: None
         """
+        self.music.stream.pause()
         self.mus_set_image = (self.mus_set_image + 1) % len(self.volume_stages)
-        self.music.music_coeff = 1.5 * self.mus_set_image
+        self.music.music_coeff = 0.5 * self.mus_set_image
+        self.music.stream.set_volume(self.music.music_coeff)
+        self.music.stream.unpause()
         self.settings()
 
     def change_settings_music_low(self):
@@ -523,9 +528,12 @@ class Main:
         Function to reduce sound
         :return: None
         """
-        self.mus_set_image = self.mus_set_image - 1 if self.mus_set_image >= 0 else len(
+        self.music.stream.pause()
+        self.mus_set_image = self.mus_set_image - 1 if self.mus_set_image > 0 else len(
             self.volume_stages) - 1
-        self.music.music_coeff = 1.5 * self.mus_set_image
+        self.music.music_coeff = 0.5 * self.mus_set_image
+        self.music.stream.set_volume(self.music.music_coeff)
+        self.music.stream.unpause()
         self.settings()
 
     def change_settings_difficult(self):
@@ -536,7 +544,7 @@ class Main:
         self.diff_image = (self.diff_image + 1) % len(self.diff_stages)
         self.settings()
 
-    def start_game(self):
+    def start_game(self, change_player_params=True):
         """
         This function start the game process
         :return: None
@@ -544,7 +552,8 @@ class Main:
         self.game_in_process = True
         pygame.mouse.set_visible(0)
         self.music.game()
-        self.player_parameters = [5, 1, 3.5, 5, 21, self.diff_parameters[self.diff_image][0]]
+        if change_player_params:
+            self.player_parameters = [5, 1, 3.5, 5, 21, self.diff_parameters[self.diff_image][0]]
         self.load_map(5)
         self.load_room(0)
         self.main_cycle()
@@ -636,6 +645,7 @@ class Main:
         """
         pygame.mouse.set_visible(1)
         self.buttons_group = pygame.sprite.Group()
+        self.level_count = 0
         text = "Гамовер"
         fon = pygame.transform.scale(load_image('fon_menu.png'), (self.WIDTH, self.HEIGHT))
         self.screen.blit(fon, (0, 0))
@@ -1700,9 +1710,12 @@ class Artifact(pygame.sprite.Sprite):
         super().__init__(main.artifact_group)
         self.main = main
         if not winner:
-            self.art_name = choice(list(self.main.art_parameters.keys())[:-1])
+            self.art_name = choice(list(self.main.art_parameters.keys())[:-2])
         else:
-            self.art_name = 'prize'
+            if self.main.level_count < self.main.diff_parameters[main.diff_image][5]:
+                self.art_name = 'level_exit'
+            else:
+                self.art_name = 'prize'
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.parameters = self.main.art_parameters[self.art_name][1]
@@ -1733,8 +1746,12 @@ class Artifact(pygame.sprite.Sprite):
             self.main.room.artifacts -= 1
             if self.main.room.artifacts == 0:
                 self.main.game_map.update_doors()
-            if self.parameters[-1] == True:
+            elif self.parameters[-1] and self.main.level_count == \
+                    self.main.diff_parameters[self.main.diff_image][5]:
                 self.main.congratulations()
+            elif self.parameters[-1]:
+                self.main.level_count += 1
+                self.main.start_game(change_player_params=False)
         if pygame.sprite.spritecollide(self, self.main.bullet_group, False):
             print('Ouch!')
 
